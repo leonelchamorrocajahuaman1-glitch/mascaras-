@@ -1,14 +1,13 @@
 import { SignJWT, jwtVerify } from "jose";
 import type { AdminRole } from "../types";
+import { sessionSecretMaterial } from "./config";
 
 export const SESSION_COOKIE = "sm_admin_session";
 export const SESSION_TTL_SECONDS = 60 * 60 * 8;
 
 function secretKey() {
-  const secret = process.env.SESSION_SECRET;
-  if (!secret || secret.length < 32) {
-    throw new Error("SESSION_SECRET no está configurado (mínimo 32 caracteres). Ejecuta `npm run setup`.");
-  }
+  const secret = sessionSecretMaterial();
+  if (!secret) throw new Error("Panel sin configurar: define ADMIN_EMAIL y ADMIN_PASSWORD (o SESSION_SECRET).");
   return new TextEncoder().encode(secret);
 }
 

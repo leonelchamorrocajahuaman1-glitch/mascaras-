@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
+import { MIN_ENV_PASSWORD, ownerConfig } from "@/lib/auth/config";
 import { createSessionToken, SESSION_COOKIE, SESSION_TTL_SECONDS, type TokenClaims } from "@/lib/auth/session";
 import { DUMMY_HASH, verifyPassword } from "@/lib/auth/password";
 import { clearRateLimit, rateLimit } from "@/lib/auth/rate-limit";
 import { clientIp } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { loginSchema } from "@/lib/validation";
+
+/** Comparación en tiempo constante de la contraseña definida en ADMIN_PASSWORD. */
+function samePassword(input: string, expected: string) {
+  const a = createHash("sha256").update(input).digest();
+  const b = createHash("sha256").update(expected).digest();
+  return expected.length >= MIN_ENV_PASSWORD && timingSafeEqual(a, b);
+}
 
 function sameText(a: string, b: string) {
   const ba = Buffer.from(a.toLowerCase());
@@ -29,14 +37,13 @@ export async function POST(req: Request) {
     );
   }
 
-  const ownerEmail = process.env.ADMIN_EMAIL;
-  const ownerHash = process.env.ADMIN_PASSWORD_HASH;
-  if (!ownerEmail || !ownerHash || !process.env.SESSION_SECRET) {
+  const owner = ownerConfig();
+  if (!owner.configured) {
     return NextResponse.json(
       {
         error: process.env.VERCEL
-          ? "El administrador no está configurado en Vercel: añade ADMIN_EMAIL, ADMIN_PASSWORD_HASH y SESSION_SECRET en Settings → Environment Variables y vuelve a desplegar."
-          : "El administrador no está configurado. Ejecuta `npm run setup` y reinicia el servidor.",
+          ? `El administrador no está configurado en Vercel. ${owner.problem ?? ""} Añade ADMIN_EMAIL y ADMIN_PASSWORD en Settings → Environment Variables y vuelve a desplegar.`
+          : "El administrador no está configurado. Define ADMIN_EMAIL y ADMIN_PASSWORD en .env.local (o ejecuta `npm run setup`) y reinicia el servidor.",
       },
       { status: 503 },
     );
@@ -48,8 +55,9 @@ export async function POST(req: Request) {
 
   let claims: TokenClaims | null = null;
   let userId: string | null = null;
-  if (sameText(email, ownerEmail)) {
-    if (await verifyPassword(password, ownerHash)) claims = { sub: "owner", email: ownerEmail.toLowerCase(), role: "owner", ver: 0 };
+  if (sameText(email, owner.email)) {
+    const ok = owner.hash ? await verifyPassword(password, owner.hash) : samePassword(password, owner.password);
+    if (ok) claims = { sub: "owner", email: owner.email, role: "owner", ver: 0 };
   } else {
     const user = await db().getAdminUserByEmail(email);
     // Siempre se calcula un hash para que el tiempo de respuesta no revele si el email existe.

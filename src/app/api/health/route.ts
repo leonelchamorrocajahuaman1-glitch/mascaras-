@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db, isReadOnlyDeployment, isSupabaseConfigured } from "@/lib/db";
 import { HAS_PUBLIC_DIR } from "@/lib/assets";
+import { ownerConfig, sessionSecretMaterial } from "@/lib/auth/config";
 
 export const dynamic = "force-dynamic";
 
@@ -24,8 +25,8 @@ export async function GET() {
     databaseStatus: database,
     readOnly: isReadOnlyDeployment(),
     activeProducts: products,
-    adminConfigured: Boolean(process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD_HASH),
-    sessionSecretConfigured: (process.env.SESSION_SECRET ?? "").length >= 32,
+    adminConfigured: ownerConfig().configured,
+    sessionSecretConfigured: Boolean(sessionSecretMaterial()),
     staticAssets: HAS_PUBLIC_DIR ? "filesystem" : "build-manifest",
     platform: process.env.VERCEL ? "vercel" : "node",
   };

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "../db";
 import type { AdminRole } from "../types";
 import { can, type Permission } from "./permissions";
+import { ownerConfig } from "./config";
 import { SESSION_COOKIE, verifySessionToken } from "./session";
 
 export interface AdminSession {
@@ -24,7 +25,7 @@ export async function getAdminSession(): Promise<AdminSession | null> {
   const jar = await cookies();
   const claims = await verifySessionToken(jar.get(SESSION_COOKIE)?.value).catch(() => null);
   if (!claims) return null;
-  const ownerEmail = (process.env.ADMIN_EMAIL ?? "").toLowerCase();
+  const ownerEmail = ownerConfig().email;
   if (claims.sub === "owner") {
     if (!ownerEmail || claims.email.toLowerCase() !== ownerEmail || claims.role !== "owner") return null;
     return { id: "owner", email: ownerEmail, name: "Propietario", role: "owner" };

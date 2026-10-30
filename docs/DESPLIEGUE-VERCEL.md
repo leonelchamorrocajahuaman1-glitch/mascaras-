@@ -24,6 +24,17 @@ Cada despliegue se comprueba automáticamente en GitHub (**Actions → Comprobar
 
 Para activar pedidos y el panel, sigue los pasos de abajo y vuelve a desplegar.
 
+## Activar el panel de administración (sin terminal)
+
+1. En Vercel, abre tu proyecto y entra en **Settings → Environment Variables**.
+2. Añade estas dos variables (entorno *Production*):
+   - `ADMIN_EMAIL` → tu email;
+   - `ADMIN_PASSWORD` → una contraseña de **al menos 12 caracteres** que no uses en otro sitio.
+3. Ve a **Deployments**, abre el menú **⋯** del último despliegue y pulsa **Redeploy**.
+4. Entra en `/admin/login` con ese email y esa contraseña.
+
+No hace falta `npm run setup`, ni `ADMIN_PASSWORD_HASH`, ni `SESSION_SECRET`. Para cambiar la contraseña, edita `ADMIN_PASSWORD` y vuelve a desplegar; las sesiones abiertas se cierran.
+
 ## 0. Antes de empezar
 
 - Cuenta de **GitHub** con acceso al repositorio `leonelchamorrocajahuaman1-glitch/mascaras-`.

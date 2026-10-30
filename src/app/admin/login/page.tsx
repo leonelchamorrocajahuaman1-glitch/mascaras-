@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import { getAdminSession } from "@/lib/auth/server";
+import { ownerConfig } from "@/lib/auth/config";
 import { LoginForm } from "@/components/admin/LoginForm";
 import { LogoMark } from "@/components/experience/Logo";
 
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function LoginPage() {
   if (await getAdminSession().catch(() => null)) redirect("/admin");
-  const configured = Boolean(process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD_HASH && process.env.SESSION_SECRET);
+  const { configured, problem } = ownerConfig();
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#050506] px-4 py-10">
       {/* Fondo: retícula técnica, halo rojo y línea de escaneo */}
@@ -40,15 +41,16 @@ export default async function LoginPage() {
           <div className="hud-corners pointer-events-none absolute inset-3 opacity-60" style={{ ["--c" as string]: "rgba(225,18,31,0.7)" }} />
           {!configured && (
             <p className="mb-5 rounded-xl border border-blood/50 bg-blood/10 p-4 text-sm leading-relaxed">
+              El panel aún no tiene administrador. {problem}{" "}
               {process.env.VERCEL ? (
                 <>
-                  El administrador aún no está configurado en este despliegue. Añade <code className="font-mono text-blood">ADMIN_EMAIL</code>,{" "}
-                  <code className="font-mono text-blood">ADMIN_PASSWORD_HASH</code> y <code className="font-mono text-blood">SESSION_SECRET</code> en Vercel → Settings →
-                  Environment Variables y vuelve a desplegar (ver docs/DESPLIEGUE-VERCEL.md).
+                  En Vercel → <strong>Settings → Environment Variables</strong> añade <code className="font-mono text-blood">ADMIN_EMAIL</code> y{" "}
+                  <code className="font-mono text-blood">ADMIN_PASSWORD</code> (mínimo 12 caracteres) y pulsa <strong>Redeploy</strong>.
                 </>
               ) : (
                 <>
-                  El administrador aún no está configurado. Ejecuta <code className="font-mono text-blood">npm run setup</code> en la carpeta del proyecto y reinicia el servidor.
+                  Define <code className="font-mono text-blood">ADMIN_EMAIL</code> y <code className="font-mono text-blood">ADMIN_PASSWORD</code> en{" "}
+                  <code className="font-mono text-blood">.env.local</code> (o ejecuta <code className="font-mono text-blood">npm run setup</code>) y reinicia el servidor.
                 </>
               )}
             </p>
