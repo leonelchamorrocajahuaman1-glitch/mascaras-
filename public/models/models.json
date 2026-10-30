@@ -1,0 +1,20 @@
+{
+  "spider-man.glb": {
+    "name": "Máscara clásica — modelo 3D",
+    "author": "",
+    "sourceUrl": "",
+    "license": "",
+    "rotationX": 0,
+    "rotationY": 0,
+    "assignTo": ["classic-red"]
+  },
+  "spider-man_symbiote.glb": {
+    "name": "Máscara simbionte — modelo 3D",
+    "author": "",
+    "sourceUrl": "",
+    "license": "",
+    "rotationX": 0,
+    "rotationY": 0,
+    "assignTo": ["black-symbiote"]
+  }
+}

@@ -5,6 +5,7 @@
     "sourceUrl": "https://studio.tripo3d.ai/...",
     "license": "Licencia indicada en la página del modelo",
     "rotationY": 0,
-    "rotationX": 0
+    "rotationX": 0,
+    "assignTo": ["slug-del-producto"]
   }
 }

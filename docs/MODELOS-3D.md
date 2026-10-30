@@ -48,3 +48,31 @@ Los GLB comprimidos con **Draco** o **Meshopt** funcionan sin conexión externa:
 ## Si quieres que Claude descargue los modelos
 
 El entorno de Claude Code en la nube necesita tener permitido el dominio `studio.tripo3d.ai` (configuración del entorno → *Network access*). Aun así, las descargas que requieren tu sesión de Tripo deben hacerse desde tu navegador. Lo más sencillo es descargarlos tú y subirlos a la carpeta `public/models/` del repositorio (con `git` o arrastrándolos en GitHub). Después Claude puede validarlos, asignarlos y ajustar su orientación.
+
+## Asignación automática con `models.json`
+
+En `public/models/models.json` cada archivo puede indicar a qué producto debe asignarse con `assignTo` (lista de slugs):
+
+```json
+{
+  "spider-man.glb": { "name": "Máscara clásica — modelo 3D", "author": "", "sourceUrl": "", "license": "", "rotationX": 0, "rotationY": 0, "assignTo": ["classic-red"] },
+  "spider-man_symbiote.glb": { "name": "Máscara simbionte — modelo 3D", "author": "", "sourceUrl": "", "license": "", "rotationX": 0, "rotationY": 0, "assignTo": ["black-symbiote"] }
+}
+```
+
+- **Cuándo se aplica:** la primera vez que la web registra el archivo, o al usar *Importar catálogo inicial*. Funciona igual en tu PC y en Vercel/Supabase.
+- **Qué hace:** solo rellena productos **sin** modelo. Nunca sustituye una asignación hecha a mano ni crea productos. Si quitas el modelo desde el panel, no se vuelve a poner solo.
+- **Si el modelo aparece girado:** ajusta `rotationY` (por ejemplo `180`) o `rotationX` (por ejemplo `-90`) aquí, o en *Admin → Modelos 3D → Editar datos*.
+- **Autor y licencia:** rellénalos con los datos reales del origen de cada modelo.
+
+### Cómo añadir `spider-man.glb` y `spider-man_symbiote.glb`
+
+1. Copia ambos archivos, con esos nombres exactos, en `public/models/`. Desde GitHub también puedes subirlos con **Add file → Upload files** dentro de la carpeta `public/models` de la rama `claude/trusting-babbage-yy4pzy`.
+2. Valídalos:
+   ```bash
+   npm run models:check
+   ```
+   Comprueba que tengan mallas y texturas y que no estén corruptos.
+3. Haz commit y push, o espera al siguiente despliegue de Vercel. Al abrir la tienda, cada modelo se asigna a su producto y aparece en la ficha (pestañas *Vista 3D / Foto*), en `/shop/3d` y en el 3D Mask Lab.
+
+GitHub rechaza archivos de más de 100 MB y Supabase Free limita cada archivo a 50 MB. Si pesan mucho, optimízalos primero con `gltf-transform`.

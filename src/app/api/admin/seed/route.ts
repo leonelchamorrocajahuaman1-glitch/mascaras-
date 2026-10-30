@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { actorLabel, requireAdmin } from "@/lib/auth/server";
 import { seedProducts } from "@/lib/seed";
 import { seedCategories } from "@/lib/defaults";
+import { applyModelAssignments } from "@/lib/models";
 
 /** Importa el catálogo de demostración (solo crea los productos cuyo slug no existe). */
 export async function POST(req: Request) {
@@ -21,6 +22,8 @@ export async function POST(req: Request) {
     await repo.createProduct({ ...input, variants: input.variants.map(({ id: _v, ...v }) => v) }, actorLabel(session));
     created += 1;
   }
+  // Los productos recién creados reciben los modelos 3D indicados en public/models/models.json.
+  await applyModelAssignments();
   revalidatePath("/", "layout");
   return NextResponse.json({ created });
 }

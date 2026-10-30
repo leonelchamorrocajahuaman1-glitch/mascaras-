@@ -33,11 +33,13 @@ interface LegacyMeta {
   license?: string;
   rotationY?: number;
   rotationX?: number;
+  /** Slugs de producto a los que se asigna el modelo al registrarlo por primera vez (solo si no tienen modelo). */
+  assignTo?: string[];
 }
 
 function legacyMeta(): Record<string, LegacyMeta> {
   try {
-    if (!HAS_PUBLIC_DIR) return {};
+    if (!HAS_PUBLIC_DIR) return ((manifest as { meta?: Record<string, LegacyMeta> }).meta ?? {}) as Record<string, LegacyMeta>;
     return JSON.parse(readFileSync(path.join(PUBLIC_DIR, "models.json"), "utf8"));
   } catch {
     return {};
@@ -60,9 +62,12 @@ export async function syncPublicModels() {
   const sig = files.map((f) => `${f}:${statSync(path.join(PUBLIC_DIR, f)).mtimeMs}`).join("|");
   if (g.__smModelSync?.sig === sig) return;
   const meta = legacyMeta();
+  const known = new Set((await db().listModelAssets()).map((m) => m.url));
+  const fresh: string[] = [];
   for (const file of files) {
     const full = path.join(PUBLIC_DIR, file);
     const r = inspectGltf(full);
+    if (!known.has(`/models/${encodeURIComponent(file)}`)) fresh.push(file);
     const m = meta[file] ?? {};
     await db().upsertModelAsset({
       fileName: file,
@@ -81,7 +86,33 @@ export async function syncPublicModels() {
       stats: r.stats,
     });
   }
+  await autoAssign(fresh, meta);
   g.__smModelSync = { at: Date.now(), sig };
+}
+
+/**
+ * Asigna los modelos recién registrados a los productos indicados en models.json (assignTo).
+ * Nunca sustituye un modelo ya asignado ni crea productos: si el producto no existe, no hace nada.
+ */
+async function autoAssign(files: string[], meta: Record<string, LegacyMeta>, onlyEmpty = true) {
+  if (!files.length) return;
+  const assets = new Map((await db().listModelAssets()).map((m) => [m.url, m]));
+  for (const file of files) {
+    const url = `/models/${encodeURIComponent(file)}`;
+    const asset = assets.get(url);
+    if (!asset?.valid) continue;
+    for (const slug of meta[file]?.assignTo ?? []) {
+      const product = await db().getProductBySlug(slug);
+      if (product && (!onlyEmpty || !product.modelUrl)) await db().patchProduct(product.id, { modelUrl: url });
+    }
+  }
+}
+
+/** Aplica las asignaciones de models.json a productos sin modelo (p. ej. tras importar el catálogo inicial). */
+export async function applyModelAssignments() {
+  await syncPublicModels();
+  const meta = legacyMeta();
+  await autoAssign(Object.keys(meta), meta, true);
 }
 
 /** Producción sin /public en disco (Vercel): registra los modelos validados durante el build. */
@@ -90,8 +121,11 @@ async function syncFromManifest() {
   const sig = entries.map(([k, v]) => `${k}:${v.sizeBytes}`).join("|");
   if (g.__smModelSync?.sig === sig) return;
   const meta = legacyMeta();
+  const known = new Set((await db().listModelAssets()).map((m) => m.url));
+  const fresh: string[] = [];
   for (const [url, r] of entries) {
     const file = decodeURIComponent(url.replace(/^\/models\//, ""));
+    if (!known.has(`/models/${encodeURIComponent(file)}`)) fresh.push(file);
     const m = meta[file] ?? {};
     await db().upsertModelAsset({
       fileName: file,
@@ -110,6 +144,7 @@ async function syncFromManifest() {
       stats: r.stats,
     });
   }
+  await autoAssign(fresh, meta);
   g.__smModelSync = { at: Date.now(), sig };
 }
 

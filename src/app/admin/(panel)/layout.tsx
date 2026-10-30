@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/auth/server";
 import { db } from "@/lib/db";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { syncPublicModels } from "@/lib/models";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const session = await getAdminSession();
   if (!session) redirect("/admin/login");
+  await syncPublicModels().catch((err) => console.error("No se pudieron sincronizar los modelos 3D:", err));
   const repo = db();
   const [orders, products, settings] = await Promise.all([repo.listOrders(), repo.listProducts({ includeInactive: true }), repo.getSettings()]);
   const alerts = {

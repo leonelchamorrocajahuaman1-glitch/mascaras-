@@ -14,7 +14,7 @@ next-env.d.ts
 
 # local database & uploads (generated at runtime)
 data/db.json
-data/db.json.tmp
+data/*.tmp
 data/uploads/
 data/models/
 

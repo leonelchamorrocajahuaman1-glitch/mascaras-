@@ -6,7 +6,32 @@
     "/images/renders/future-vision-original.webp",
     "/images/renders/iron-edition-original.webp",
     "/images/renders/stealth-edition-original.webp",
-    "/models/models.example.json"
+    "/models/models.example.json",
+    "/models/models.json"
   ],
-  "models": {}
+  "models": {},
+  "meta": {
+    "spider-man.glb": {
+      "name": "Máscara clásica — modelo 3D",
+      "author": "",
+      "sourceUrl": "",
+      "license": "",
+      "rotationX": 0,
+      "rotationY": 0,
+      "assignTo": [
+        "classic-red"
+      ]
+    },
+    "spider-man_symbiote.glb": {
+      "name": "Máscara simbionte — modelo 3D",
+      "author": "",
+      "sourceUrl": "",
+      "license": "",
+      "rotationX": 0,
+      "rotationY": 0,
+      "assignTo": [
+        "black-symbiote"
+      ]
+    }
+  }
 }

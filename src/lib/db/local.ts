@@ -97,7 +97,22 @@ function migrate(raw: Partial<DbShape> & { version?: number }): DbShape {
   return db;
 }
 
-const g2 = globalThis as unknown as { __smReadOnlyDb?: DbShape };
+const g2 = globalThis as unknown as { __smReadOnlyDb?: DbShape; __smDbInit?: Promise<void> };
+
+/** Crea data/db.json una sola vez aunque lleguen varias peticiones a la vez en el primer arranque. */
+function ensureDbFile() {
+  g2.__smDbInit ??= (async () => {
+    try {
+      await fs.access(DB_FILE);
+    } catch {
+      await writeDb(fresh());
+    }
+  })().catch((err) => {
+    g2.__smDbInit = undefined;
+    throw err;
+  });
+  return g2.__smDbInit;
+}
 
 async function readDb(): Promise<DbShape> {
   if (isReadOnlyDeployment()) {
@@ -109,20 +124,15 @@ async function readDb(): Promise<DbShape> {
     }
     return structuredClone(g2.__smReadOnlyDb);
   }
-  try {
-    return migrate(JSON.parse(await fs.readFile(DB_FILE, "utf8")));
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
-    const db = fresh();
-    await writeDb(db);
-    return db;
-  }
+  await ensureDbFile();
+  return migrate(JSON.parse(await fs.readFile(DB_FILE, "utf8")));
 }
 
 async function writeDb(db: DbShape) {
   if (isReadOnlyDeployment()) throw new DbError(READ_ONLY_MESSAGE, 503);
   await fs.mkdir(DATA_DIR, { recursive: true });
-  const tmp = `${DB_FILE}.tmp`;
+  // Temporal único por escritura: el rename final es atómico y nunca deja un archivo a medias.
+  const tmp = `${DB_FILE}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
   const body = JSON.stringify(db, null, 2);
   await fs.writeFile(tmp, body, "utf8");
   try {

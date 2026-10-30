@@ -2,7 +2,7 @@
 // (y la validación de cada modelo). En Vercel las funciones del servidor no incluyen /public,
 // así que el servidor consulta este manifiesto en lugar de leer el disco.
 // Se ejecuta automáticamente antes de `npm run dev` y `npm run build`.
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { inspectGltf } from "./lib-gltf.mjs";
 
@@ -25,6 +25,18 @@ for (const f of files.filter((f) => /^\/models\/[^/]+\.(glb|gltf)$/i.test(f))) {
   models[f] = { sizeBytes: statSync(full).size, ...inspectGltf(full) };
 }
 
+// Metadata opcional (nombre, autor, licencia, rotación, assignTo) para usarla también en Vercel.
+let meta = {};
+const metaFile = path.join(root, "models", "models.json");
+if (existsSync(metaFile)) {
+  try {
+    meta = JSON.parse(readFileSync(metaFile, "utf8"));
+  } catch (e) {
+    console.error(`public/models/models.json no es JSON válido: ${e.message}`);
+    process.exit(1);
+  }
+}
+
 mkdirSync(path.join(process.cwd(), "src", "generated"), { recursive: true });
-writeFileSync(path.join(process.cwd(), "src", "generated", "public-manifest.json"), JSON.stringify({ files: files.sort(), models }, null, 2) + "\n");
+writeFileSync(path.join(process.cwd(), "src", "generated", "public-manifest.json"), JSON.stringify({ files: files.sort(), models, meta }, null, 2) + "\n");
 console.log(`public-manifest: ${files.length} archivos, ${Object.keys(models).length} modelo(s) 3D.`);
