@@ -7,6 +7,8 @@ import { formatMoney, pad } from "@/lib/format";
 import { siteConfig } from "@/lib/config";
 import { ProductImage } from "@/components/shop/ProductImage";
 import { ProductPurchase } from "@/components/shop/ProductPurchase";
+import { ProductMedia } from "@/components/shop/ProductMedia";
+import { resolveModel } from "@/lib/models";
 import { TLink } from "@/components/experience/RouteTransition";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +27,7 @@ export default async function ProductPage({ params }: Params) {
 
   const mask = MASK_BY_KEY[product.modelKey] ?? MASK_BY_KEY["classic-red"];
   const gallery = productGallery(product);
+  const model = resolveModel(product.modelUrl);
   const all = await db().listProducts();
   const related = all.filter((p) => p.id !== product.id).slice(0, 3);
 
@@ -36,12 +39,7 @@ export default async function ProductPage({ params }: Params) {
 
       <div className="mt-8 grid gap-10 px-[var(--gutter)] lg:grid-cols-[1.15fr_1fr] lg:gap-16">
         <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-          <div className="relative aspect-[4/5] overflow-hidden bg-coal">
-            <div className="absolute inset-0" style={{ background: `radial-gradient(60% 50% at 50% 45%, ${mask.accent}30, transparent 70%)` }} />
-            <ProductImage src={gallery[0] ?? null} alt={product.name} maskKey={product.modelKey} priority sizes="(max-width: 1024px) 100vw, 55vw" className="h-full w-full" />
-            <div className="hud-corners pointer-events-none absolute inset-5" />
-            <span className="absolute bottom-6 left-6 font-mono text-[10px] uppercase tracking-[0.3em] text-bone/70">{mask.code} / {product.name}</span>
-          </div>
+          <ProductMedia name={product.name} image={gallery[0] ?? null} maskKey={product.modelKey} accent={mask.accent} model={model} code={mask.code} />
           {gallery.length > 1 && (
             <div className="grid grid-cols-3 gap-4">
               {gallery.slice(1, 4).map((src) => (
@@ -75,7 +73,7 @@ export default async function ProductPage({ params }: Params) {
           <dl className="mt-12 divide-y divide-bone/10 border-y border-bone/10 text-sm">
             <div className="flex justify-between py-4"><dt className="text-steel">Envío</dt><dd>{formatMoney(siteConfig.shippingCents)} · gratis desde {formatMoney(siteConfig.freeShippingFromCents)}</dd></div>
             <div className="flex justify-between py-4"><dt className="text-steel">Pago</dt><dd>Demostración — sin cobro real</dd></div>
-            <div className="flex justify-between py-4"><dt className="text-steel">Modelo 3D</dt><dd>{mask.name}</dd></div>
+            <div className="flex justify-between py-4"><dt className="text-steel">Modelo 3D</dt><dd>{model ? `GLB · ${model.name}` : "Pendiente de archivo GLB"}</dd></div>
           </dl>
         </div>
       </div>

@@ -16,6 +16,17 @@ import type { LightRig } from "../three/Lights";
 const SceneCanvas = dynamic(() => import("../three/SceneCanvas").then((m) => m.SceneCanvas), { ssr: false });
 const LabScene = dynamic(() => import("../three/LabScene").then((m) => m.LabScene), { ssr: false });
 
+export interface LabGlbModel {
+  url: string;
+  name: string;
+  rotationY: number;
+  rotationX: number;
+  author?: string;
+  license?: string;
+  /** Producto de la tienda que usa este archivo (si lo hay). */
+  shopSlug?: string;
+}
+
 const CHANNEL_LABEL: Record<MaskChannel, string> = { base: "Base", web: "Telaraña", lens: "Lentes", glow: "Brillo de la red" };
 const CHANNEL_FIELD: Record<MaskChannel, keyof MaskLook> = { base: "base", web: "web", lens: "lens", glow: "glow" };
 
@@ -56,13 +67,19 @@ export function MaskLab({
   models = {},
   shopSlugs = {},
   standalone = false,
+  glbModels = [],
+  initialGlb,
 }: {
+  glbModels?: LabGlbModel[];
+  initialGlb?: string;
   initialModel?: MaskKey;
   models?: Partial<Record<MaskKey, string>>;
   shopSlugs?: Partial<Record<MaskKey, string>>;
   standalone?: boolean;
 }) {
   const [key, setKey] = useState<MaskKey>(MASK_BY_KEY[initialModel] ? initialModel : "classic-red");
+  const [glbSel, setGlbSel] = useState<string | null>(glbModels.some((g) => g.url === initialGlb) ? initialGlb! : null);
+  const [glbError, setGlbError] = useState<string | null>(null);
   const [custom, setCustom] = useState<Partial<Record<MaskKey, Partial<MaskLook>>>>({});
   const [rig, setRig] = useState<LightRig>({ key: true, rim: true, ambient: true });
   const [bloom, setBloom] = useState(true);
@@ -111,7 +128,9 @@ export function MaskLab({
     a.click();
   };
 
-  const glbUrl = models[key];
+  const glb = glbModels.find((g) => g.url === glbSel) ?? null;
+  const glbUrl = glb?.url ?? models[key];
+  const shopSlug = glb ? glb.shopSlug : shopSlugs[key];
 
   return (
     <section ref={section} id="lab" aria-label="3D Mask Lab" className="relative bg-[#060607]">
@@ -134,8 +153,10 @@ export function MaskLab({
             <LabScene
               ref={api}
               look={look}
-              modelKey={key}
+              modelKey={glb ? glb.url : key}
               glbUrl={glbUrl}
+              glbRotation={glb ? [glb.rotationX, glb.rotationY] : [0, 0]}
+              onGlbError={setGlbError}
               channels={mask.customizable}
               rig={rig}
               bloom={bloom}
@@ -176,7 +197,7 @@ export function MaskLab({
             <span className="text-outline">Lab</span>
           </h2>
           <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.25em] text-steel">
-            {glbUrl ? `Modelo GLB · ${glbUrl}` : "Modelo procedural en tiempo real · Three.js"}
+            {glbUrl ? `Modelo GLB · ${decodeURIComponent(glbUrl)}` : "Modelo procedural en tiempo real · Three.js"}
           </p>
         </div>
 
@@ -187,8 +208,11 @@ export function MaskLab({
               <li key={m.key} className="shrink-0">
                 <button
                   type="button"
-                  onClick={() => setKey(m.key)}
-                  aria-pressed={m.key === key}
+                  onClick={() => {
+                    setGlbSel(null);
+                    setKey(m.key);
+                  }}
+                  aria-pressed={!glb && m.key === key}
                   className={`group flex w-full items-center gap-4 rounded-full border px-4 py-2 text-left transition lg:rounded-none lg:border-0 lg:border-b lg:px-0 lg:py-3 ${
                     m.key === key ? "border-blood text-bone lg:border-bone/20" : "border-bone/10 text-steel hover:text-bone lg:border-bone/10"
                   }`}
@@ -196,6 +220,24 @@ export function MaskLab({
                   <span className={`font-mono text-[10px] ${m.key === key ? "text-blood" : ""}`}>{pad(i + 1)}</span>
                   <span className="whitespace-nowrap font-display text-lg font-extrabold uppercase tracking-wide lg:text-2xl">{m.name}</span>
                   <span className={`ml-auto hidden h-px bg-blood transition-all duration-500 lg:block ${m.key === key ? "w-8" : "w-0"}`} />
+                </button>
+              </li>
+            ))}
+            {glbModels.map((g, i) => (
+              <li key={g.url} className="shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGlbError(null);
+                    setGlbSel(g.url);
+                  }}
+                  aria-pressed={glbSel === g.url}
+                  className={`group flex w-full items-center gap-4 rounded-full border px-4 py-2 text-left transition lg:rounded-none lg:border-0 lg:border-b lg:px-0 lg:py-3 ${
+                    glbSel === g.url ? "border-blood text-bone lg:border-bone/20" : "border-bone/10 text-steel hover:text-bone lg:border-bone/10"
+                  }`}
+                >
+                  <span className={`font-mono text-[10px] ${glbSel === g.url ? "text-blood" : ""}`}>GLB{pad(i + 1)}</span>
+                  <span className="max-w-[12rem] truncate whitespace-nowrap font-display text-lg font-extrabold uppercase tracking-wide lg:text-2xl">{g.name}</span>
                 </button>
               </li>
             ))}
@@ -209,9 +251,12 @@ export function MaskLab({
           data-lenis-prevent
         >
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-blood">{mask.code}</p>
-            <p className="mt-1 font-display text-3xl font-black uppercase">{mask.name}</p>
-            <p className="mt-1 text-sm text-bone/60">{mask.tagline}</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-blood">{glb ? "Archivo GLB" : mask.code}</p>
+            <p className="mt-1 font-display text-3xl font-black uppercase">{glb ? glb.name : mask.name}</p>
+            <p className="mt-1 text-sm text-bone/60">
+              {glb ? `${glb.author ? `Autor: ${glb.author}` : "Autor no indicado"}${glb.license ? ` · ${glb.license}` : ""}` : mask.tagline}
+            </p>
+            {glbError && <p role="alert" className="mt-2 text-xs text-blood">No se pudo cargar el archivo: {glbError}</p>}
           </div>
 
           <div>
@@ -248,7 +293,7 @@ export function MaskLab({
                 ))}
               </div>
             ) : (
-              <p className="text-xs leading-relaxed text-steel">Colorway de edición fijo. Prueba Classic Red, Future Vision o Custom Series para personalizar.</p>
+              <p className="text-xs leading-relaxed text-steel">{glb ? "Se muestran los colores y texturas originales del archivo." : "Colorway de edición fijo. Prueba Classic Red, Future Vision o Custom Series para personalizar."}</p>
             )}
           </div>
 
@@ -264,9 +309,9 @@ export function MaskLab({
             </div>
           </div>
 
-          {shopSlugs[key] && (
+          {shopSlug && (
             <TLink
-              href={`/shop/${shopSlugs[key]}`}
+              href={`/shop/${shopSlug}`}
               className="flex items-center justify-center gap-2 rounded-full bg-blood py-3.5 font-mono text-[11px] uppercase tracking-[0.25em] text-white transition hover:bg-ember"
             >
               <ShoppingBag size={14} /> Ver en la tienda

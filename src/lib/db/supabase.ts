@@ -32,6 +32,7 @@ function toProduct(row: any): Product {
     compareAtCents: row.compare_at_cents,
     images: row.images ?? [],
     modelKey: row.model_key as MaskKey,
+    modelUrl: row.model_url ?? null,
     featured: row.featured,
     active: row.active,
     variants: (row.product_variants ?? [])
@@ -87,6 +88,7 @@ function productRow(input: ProductInput) {
     compare_at_cents: input.compareAtCents,
     images: input.images,
     model_key: input.modelKey,
+    model_url: input.modelUrl,
     featured: input.featured,
     active: input.active,
   };

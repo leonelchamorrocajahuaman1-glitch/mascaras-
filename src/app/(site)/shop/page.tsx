@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { Box } from "lucide-react";
 import { Catalog } from "@/components/shop/Catalog";
+import { TLink } from "@/components/experience/RouteTransition";
 import type { CatalogItem } from "@/components/shop/types";
 import { activeProducts } from "@/lib/catalog";
 import Image from "next/image";
@@ -47,6 +49,12 @@ export default async function ShopPage() {
         <p className="relative mt-8 max-w-lg text-[15px] leading-relaxed text-bone/70">
           Catálogo completo de la colección. Precios demostrativos: puedes añadir al carrito y registrar pedidos, pero aún no se realizan cobros.
         </p>
+        <TLink
+          href="/shop/3d"
+          className="relative mt-8 inline-flex items-center gap-3 rounded-full border border-bone/20 px-6 py-3 font-mono text-[11px] uppercase tracking-[0.25em] transition hover:border-blood"
+        >
+          <Box size={15} className="text-blood" /> Galería 3D interactiva
+        </TLink>
       </header>
       <Suspense>
         <Catalog items={items} />

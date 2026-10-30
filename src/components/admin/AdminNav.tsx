@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, LogOut, Package, Receipt, Store } from "lucide-react";
+import { Box, LayoutDashboard, LogOut, Package, Receipt, Store } from "lucide-react";
 import { LogoMark } from "../experience/Logo";
 
 const NAV = [
   { href: "/admin", label: "Resumen", icon: LayoutDashboard, exact: true },
   { href: "/admin/products", label: "Productos", icon: Package },
   { href: "/admin/orders", label: "Pedidos", icon: Receipt },
+  { href: "/admin/models", label: "Modelos 3D", icon: Box },
 ];
 
 export function AdminNav({ email, dbKind }: { email: string; dbKind: string }) {

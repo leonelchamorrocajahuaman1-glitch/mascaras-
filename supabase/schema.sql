@@ -16,6 +16,7 @@ create table if not exists products (
   compare_at_cents integer check (compare_at_cents >= 0),
   images text[] not null default '{}',
   model_key text not null,
+  model_url text,
   featured boolean not null default false,
   active boolean not null default true,
   created_at timestamptz not null default now(),
@@ -64,6 +65,9 @@ create table if not exists order_items (
   quantity integer not null check (quantity > 0)
 );
 create index if not exists order_items_order_idx on order_items(order_id);
+
+-- Migración para proyectos creados con una versión anterior del esquema.
+alter table products add column if not exists model_url text;
 
 -- RLS activado sin políticas públicas: solo la service role (servidor) puede leer/escribir.
 alter table products enable row level security;

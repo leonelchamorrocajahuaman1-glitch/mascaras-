@@ -24,6 +24,12 @@ export const productInputSchema = z.object({
   compareAtCents: cents.nullable(),
   images: z.array(imageUrl).max(8),
   modelKey: z.enum(MASK_KEYS),
+  modelUrl: z
+    .string()
+    .max(300)
+    .regex(/^\/models\/[A-Za-z0-9._%-]+\.(glb|gltf)$/i, "El modelo debe estar en /models y ser .glb o .gltf")
+    .nullable()
+    .default(null),
   featured: z.boolean(),
   active: z.boolean(),
   variants: z

@@ -5,7 +5,7 @@ import { DETAIL_CHAPTERS } from "@/components/home/details-data";
 import { ShopCta } from "@/components/home/ShopCta";
 import { MaskLab } from "@/components/lab/MaskLab";
 import { LazyMount } from "@/components/experience/LazyMount";
-import { activeProducts, shopSlugsByModel, toShowcase } from "@/lib/catalog";
+import { activeProducts, labGlbModels, shopSlugsByModel, toShowcase } from "@/lib/catalog";
 import { availableModels, detailImage, heroImage } from "@/lib/assets";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export default async function HomePage() {
       <Hero poster={heroImage("hero-poster.webp")} />
       <Collection items={items} />
       <LazyMount>
-        <MaskLab models={availableModels()} shopSlugs={shopSlugsByModel(products)} />
+        <MaskLab models={availableModels()} glbModels={labGlbModels(products)} shopSlugs={shopSlugsByModel(products)} />
       </LazyMount>
       <Details images={detailImages} />
       <ShopCta />

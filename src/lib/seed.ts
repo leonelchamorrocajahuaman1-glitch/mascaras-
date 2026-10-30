@@ -29,6 +29,7 @@ export function seedProducts(): Product[] {
       compareAtCents: compare,
       images: [`/images/masks/${mask.key}.webp`],
       modelKey: mask.key,
+      modelUrl: null,
       featured: i < 4,
       active: true,
       variants: sizes.map((size, j) => ({

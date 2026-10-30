@@ -1,3 +1,4 @@
+import { listModels } from "@/lib/models";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -19,7 +20,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
           actions={product.active ? <a href={`/shop/${product.slug}`} target="_blank" rel="noreferrer" className="text-sm text-steel hover:text-bone">Ver en la tienda ↗</a> : null}
         />
       </div>
-      <ProductForm product={product} />
+      <ProductForm product={product} models={listModels().map((m) => ({ url: m.url, name: m.name, ok: m.ok }))} />
     </>
   );
 }

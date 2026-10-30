@@ -1,0 +1,10 @@
+{
+  "nombre-del-archivo.glb": {
+    "name": "Nombre que se mostrará",
+    "author": "Autor del modelo en Tripo",
+    "sourceUrl": "https://studio.tripo3d.ai/...",
+    "license": "Licencia indicada en la página del modelo",
+    "rotationY": 0,
+    "rotationX": 0
+  }
+}

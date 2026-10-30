@@ -29,7 +29,10 @@ const g = globalThis as unknown as { __smDbLock?: Promise<unknown> };
 async function readDb(): Promise<DbShape> {
   try {
     const raw = await fs.readFile(DB_FILE, "utf8");
-    return JSON.parse(raw) as DbShape;
+    const db = JSON.parse(raw) as DbShape;
+    // Compatibilidad con bases creadas antes de existir modelUrl.
+    for (const p of db.products) p.modelUrl ??= null;
+    return db;
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
     const fresh: DbShape = { version: 1, products: seedProducts(), orders: [], orderSeq: 1000 };

@@ -14,6 +14,7 @@ const LINKS = [
   { href: "/lab", label: "3D Mask Lab", hint: "Gira, acerca, personaliza" },
   { href: "/#details", label: "The Details", hint: "Lentes, red, materiales" },
   { href: "/shop", label: "Shop", hint: "Catálogo y carrito" },
+  { href: "/shop/3d", label: "3D Gallery", hint: "Modelos GLB reales" },
 ];
 
 export function Menu() {

@@ -1,3 +1,5 @@
+import { listModels } from "@/lib/models";
+export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { PageHeader } from "@/components/admin/ui";
 import { ProductForm } from "@/components/admin/ProductForm";
@@ -9,7 +11,7 @@ export default function NewProductPage() {
     <>
       <Link href="/admin/products" className="text-sm text-steel hover:text-bone">← Productos</Link>
       <div className="mt-4"><PageHeader title="Nuevo producto" /></div>
-      <ProductForm />
+      <ProductForm models={listModels().map((m) => ({ url: m.url, name: m.name, ok: m.ok }))} />
     </>
   );
 }

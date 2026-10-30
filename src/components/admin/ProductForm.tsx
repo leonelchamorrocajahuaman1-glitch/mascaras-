@@ -16,7 +16,13 @@ const toCents = (v: string) => (v.trim() === "" ? null : Math.round(Number(v.rep
 const input = "h-11 w-full rounded-xl border border-bone/15 bg-ink px-3 text-sm focus:border-blood focus:outline-none";
 const labelCls = "font-mono text-[10px] uppercase tracking-[0.2em] text-steel";
 
-export function ProductForm({ product }: { product?: Product }) {
+export interface ModelOption {
+  url: string;
+  name: string;
+  ok: boolean;
+}
+
+export function ProductForm({ product, models = [] }: { product?: Product; models?: ModelOption[] }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(product?.name ?? "");
@@ -24,6 +30,7 @@ export function ProductForm({ product }: { product?: Product }) {
   const [slugTouched, setSlugTouched] = useState(Boolean(product));
   const [category, setCategory] = useState<MaskKey>(product?.category ?? "classic-red");
   const [modelKey, setModelKey] = useState<MaskKey>(product?.modelKey ?? "classic-red");
+  const [modelUrl, setModelUrl] = useState<string>(product?.modelUrl ?? "");
   const [tagline, setTagline] = useState(product?.tagline ?? "");
   const [description, setDescription] = useState(product?.description ?? "");
   const [price, setPrice] = useState(toMoney(product?.priceCents ?? 14900));
@@ -83,6 +90,7 @@ export function ProductForm({ product }: { product?: Product }) {
       slug,
       category,
       modelKey,
+      modelUrl: modelUrl || null,
       tagline,
       description,
       priceCents,
@@ -162,12 +170,30 @@ export function ProductForm({ product }: { product?: Product }) {
               </select>
             </label>
             <label className="block space-y-2">
-              <span className={labelCls}>Modelo 3D asociado</span>
+              <span className={labelCls}>Estilo procedural (laboratorio)</span>
               <select value={modelKey} onChange={(e) => setModelKey(e.target.value as MaskKey)} className={input}>
                 {MASKS.map((m) => <option key={m.key} value={m.key}>{m.name}</option>)}
               </select>
             </label>
           </div>
+          <label className="block space-y-2">
+            <span className={labelCls}>Modelo 3D (GLB real)</span>
+            <select value={modelUrl} onChange={(e) => setModelUrl(e.target.value)} className={input}>
+              <option value="">— Sin modelo 3D —</option>
+              {models.map((m) => (
+                <option key={m.url} value={m.url} disabled={!m.ok}>
+                  {m.name} · {decodeURIComponent(m.url)}
+                  {m.ok ? "" : " (archivo con errores)"}
+                </option>
+              ))}
+              {modelUrl && !models.some((m) => m.url === modelUrl) && <option value={modelUrl}>{modelUrl} (no encontrado)</option>}
+            </select>
+            <span className="block text-xs text-steel">
+              {models.length
+                ? "Archivos detectados en public/models. Se muestra en la ficha, en la Galería 3D y en el laboratorio."
+                : "No hay archivos en public/models. Copia allí tus .glb y recarga esta página."}
+            </span>
+          </label>
         </section>
 
         <section className="space-y-4 rounded-2xl border border-bone/10 p-6">

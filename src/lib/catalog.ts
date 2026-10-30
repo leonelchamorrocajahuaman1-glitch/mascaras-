@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "./db";
 import { MASK_BY_KEY } from "./masks";
 import { productImage } from "./assets";
+import { validModels } from "./models";
 import type { MaskKey, Product } from "./types";
 import type { ShowcaseItem } from "@/components/home/types";
 
@@ -28,6 +29,11 @@ export function shopSlugsByModel(products: Product[]) {
   const out: Partial<Record<MaskKey, string>> = {};
   for (const p of products) if (!out[p.modelKey]) out[p.modelKey] = p.slug;
   return out;
+}
+
+/** Modelos GLB válidos para el laboratorio, enlazados al producto que los usa. */
+export function labGlbModels(products: Product[]) {
+  return validModels().map((m) => ({ ...m, shopSlug: products.find((p) => p.modelUrl === m.url)?.slug }));
 }
 
 export async function activeProducts() {

@@ -48,7 +48,7 @@ npm run build
 npm run start
 ```
 
-Otros comandos: `npm run typecheck`, `npm run db:reset` (vuelve al catálogo inicial), `npm run admin:hash -- "nueva-clave"` (genera un nuevo hash de contraseña).
+Otros comandos: `npm run typecheck`, `npm run models:check` (valida los GLB de `public/models`), `npm run db:reset` (vuelve al catálogo inicial), `npm run admin:hash -- "nueva-clave"` (genera un nuevo hash de contraseña).
 
 ## Qué incluye
 
@@ -103,14 +103,16 @@ Mientras tanto, la web usa **renders reales del modelo 3D** (`public/images/rend
 
 ## Modelos 3D
 
-La máscara que ves es un **modelo 3D procedural real** (malla esculpida de ~90 000 vértices + shader propio de telaraña, lentes y marcos), no una imagen. Si consigues modelos profesionales, el laboratorio los usa automáticamente:
+La web carga **archivos GLB/GLTF reales** que coloques en `public/models/`. Guía completa (descarga manual desde Tripo, licencias, metadata, validación y asignación): **[`docs/MODELOS-3D.md`](docs/MODELOS-3D.md)**.
 
-- **Formato:** `.glb` (glTF binario, todo en un archivo). También vale `.gltf`, pero GLB es más sencillo.
-- **Ubicación y nombres:** `public/models/classic-red.glb`, `black-symbiote.glb`, `iron-edition.glb`, `future-vision.glb`, `stealth-edition.glb`, `custom-series.glb`. Puedes añadir solo algunos; los que falten siguen siendo procedurales.
-- **Orientación:** la cara mirando a +Z, eje Y hacia arriba. El visor centra y escala el modelo automáticamente.
-- **Recolorear:** nombra los materiales (o mallas) con `base`, `web` y `lens` para que los selectores de color funcionen.
-- **Peso:** objetivo < 5 MB. Optimiza con `npx @gltf-transform/cli optimize entrada.glb salida.glb --texture-compress webp` (texturas 2K máximo). Si usas compresión Draco, drei descarga el decodificador desde el CDN de Google la primera vez.
-- **Dónde conseguirlos:** encárgalo a un artista 3D o usa Blender (exporta *File → Export → glTF 2.0 (.glb)*). Revisa la licencia de cualquier modelo descargado; no uses modelos con copyright sin permiso.
+- Se detectan automáticamente y se validan con `npm run models:check` o en **Admin → Modelos 3D** (con vista previa).
+- Cada producto puede tener su archivo (**Admin → Productos → editar → "Modelo 3D (GLB real)"**). Con él se muestra:
+  - una vista 3D en la ficha: girar, ampliar y ángulos predefinidos;
+  - una tarjeta 3D interactiva en la **Galería 3D** (`/shop/3d`);
+  - una entrada en el **3D Mask Lab**.
+- Metadata opcional en `public/models/models.json` (nombre, autor, origen, licencia y rotación). Plantilla: `public/models/models.example.json`.
+- Draco y Meshopt están soportados sin CDN: el decodificador va en `public/draco/`.
+- Los productos sin archivo siguen usando el modelo procedural del laboratorio y sus imágenes.
 
 ## Pagos
 

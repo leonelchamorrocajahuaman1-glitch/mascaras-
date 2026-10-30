@@ -25,8 +25,10 @@ export interface Product {
   priceCents: number;
   compareAtCents: number | null;
   images: string[];
-  /** Clave del modelo 3D (procedural o GLB) que representa al producto. */
+  /** Clave del modelo 3D procedural que representa al producto. */
   modelKey: MaskKey;
+  /** Archivo GLB/GLTF real en /public/models (prioritario sobre el procedural). */
+  modelUrl: string | null;
   featured: boolean;
   active: boolean;
   variants: ProductVariant[];

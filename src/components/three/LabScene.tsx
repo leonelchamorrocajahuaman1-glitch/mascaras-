@@ -9,7 +9,7 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { gsap } from "@/lib/gsap";
 import type { MaskChannel, MaskLook } from "@/lib/masks";
 import { MaskModel, type MaskDrive } from "./MaskModel";
-import { GLBMask } from "./GLBMask";
+import { GLBMask, ModelErrorBoundary } from "./GLBMask";
 import { StudioLights, type LightRig } from "./Lights";
 import { Particles } from "./Particles";
 
@@ -30,6 +30,8 @@ interface Props {
   look: MaskLook;
   modelKey: string;
   glbUrl?: string;
+  glbRotation?: [number, number];
+  onGlbError?: (message: string) => void;
   channels: MaskChannel[];
   rig: LightRig;
   bloom: boolean;
@@ -45,7 +47,7 @@ const MIN_D = 2.2;
 const MAX_D = 8;
 
 export const LabScene = forwardRef<LabApi, Props>(function LabScene(
-  { look, modelKey, glbUrl, channels, rig, bloom, autoRotate, interactive, drive, onReadout, detail },
+  { look, modelKey, glbUrl, glbRotation = [0, 0], onGlbError, channels, rig, bloom, autoRotate, interactive, drive, onReadout, detail },
   ref,
 ) {
   const controls = useRef<OrbitControlsImpl>(null);
@@ -120,9 +122,11 @@ export const LabScene = forwardRef<LabApi, Props>(function LabScene(
       <StudioLights rig={rig} />
       <group ref={model}>
         {glbUrl ? (
-          <Suspense fallback={null}>
-            <GLBMask url={glbUrl} look={look} channels={channels} />
-          </Suspense>
+          <ModelErrorBoundary resetKey={glbUrl} onError={onGlbError}>
+            <Suspense fallback={null}>
+              <GLBMask url={glbUrl} look={look} channels={channels} rotationX={glbRotation[0]} rotationY={glbRotation[1]} />
+            </Suspense>
+          </ModelErrorBoundary>
         ) : (
           <MaskModel look={look} drive={drive} detail={detail} transition={4} />
         )}
