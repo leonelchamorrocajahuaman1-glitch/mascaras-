@@ -29,6 +29,20 @@ export async function GET() {
     sessionSecretConfigured: Boolean(sessionSecretMaterial()),
     staticAssets: HAS_PUBLIC_DIR ? "filesystem" : "build-manifest",
     platform: process.env.VERCEL ? "vercel" : "node",
+    // Diagnóstico de despliegue: versión publicada y presencia (sí/no) de variables. Nunca sus valores.
+    commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
+    branch: process.env.VERCEL_GIT_COMMIT_REF ?? null,
+    vercelEnv: process.env.VERCEL_ENV ?? null,
+    envPresent: {
+      ADMIN_EMAIL: Boolean(process.env.ADMIN_EMAIL?.trim()),
+      ADMIN_PASSWORD: Boolean(process.env.ADMIN_PASSWORD),
+      ADMIN_PASSWORD_long_enough: (process.env.ADMIN_PASSWORD ?? "").length >= 12,
+      ADMIN_PASSWORD_HASH: Boolean(process.env.ADMIN_PASSWORD_HASH),
+      SESSION_SECRET: Boolean(process.env.SESSION_SECRET),
+      NEXT_PUBLIC_SUPABASE_URL: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+      SUPABASE_SERVICE_ROLE_KEY: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    },
+    adminProblem: ownerConfig().problem,
   };
   const ok = database === "ok" && checks.adminConfigured && checks.sessionSecretConfigured && !checks.readOnly;
   return NextResponse.json({ ok, ...checks, ...(detail ? { detail } : {}) }, { status: ok ? 200 : 503, headers: { "Cache-Control": "no-store" } });
