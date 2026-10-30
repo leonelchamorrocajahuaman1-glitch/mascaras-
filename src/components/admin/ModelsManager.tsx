@@ -23,7 +23,7 @@ interface ProductRef {
 
 type ModelWithState = ModelAsset & { missing: boolean };
 
-function UploadPanel({ products, onDone, direct }: { products: ProductRef[]; onDone: () => void; direct: boolean }) {
+function UploadPanel({ products, onDone, direct, blocked }: { products: ProductRef[]; onDone: () => void; direct: boolean; blocked: string | null }) {
   const { toast } = useFeedback();
   const input = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -80,6 +80,7 @@ function UploadPanel({ products, onDone, direct }: { products: ProductRef[]; onD
   };
 
   const submit = () => {
+    if (blocked) return toast(blocked, "error");
     if (!files.length) return toast("Selecciona un archivo .glb o .gltf.", "error");
     if (direct) return void submitDirect();
     const fd = new FormData();
@@ -118,6 +119,11 @@ function UploadPanel({ products, onDone, direct }: { products: ProductRef[]; onD
   return (
     <Card className="space-y-4 p-6">
       <h2 className="flex items-center gap-2 font-display text-2xl font-black uppercase"><Upload size={18} className="text-blood" /> Subir modelo</h2>
+      {blocked && (
+        <p role="alert" className="flex gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-100">
+          <AlertTriangle size={15} className="mt-0.5 shrink-0 text-amber-300" /> {blocked}
+        </p>
+      )}
       <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-bone/20 bg-black/30 px-4 py-8 text-center text-sm text-steel transition hover:border-blood hover:text-bone">
         <Upload size={20} />
         {files.length ? files.map((f) => `${f.name} (${(f.size / 1048576).toFixed(2)} MB)`).join(", ") : "Elige un .glb (o un .gltf con sus .bin y texturas)"}
@@ -154,7 +160,7 @@ function UploadPanel({ products, onDone, direct }: { products: ProductRef[]; onD
           {issues.map((i) => <li key={i}>✖ {i}</li>)}
         </ul>
       )}
-      <button type="button" disabled={progress !== null} onClick={submit} className={btnPrimary}>
+      <button type="button" disabled={progress !== null || Boolean(blocked)} onClick={submit} className={btnPrimary}>
         {progress !== null ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />} Subir y validar
       </button>
       <p className="text-xs leading-relaxed text-steel">
@@ -287,7 +293,7 @@ function ModelCard({ model, products, canWrite, onChange }: { model: ModelWithSt
   );
 }
 
-export function ModelsManager({ models, products, canWrite, direct = false }: { models: ModelWithState[]; products: ProductRef[]; canWrite: boolean; direct?: boolean }) {
+export function ModelsManager({ models, products, canWrite, direct = false, uploadBlocked = null }: { models: ModelWithState[]; products: ProductRef[]; canWrite: boolean; direct?: boolean; uploadBlocked?: string | null }) {
   const router = useRouter();
   const refresh = () => router.refresh();
   const valid = new Set(models.filter((m) => m.valid && !m.missing).map((m) => m.url));
@@ -298,7 +304,7 @@ export function ModelsManager({ models, products, canWrite, direct = false }: { 
   return (
     <div className="space-y-6">
       <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
-        {canWrite ? <UploadPanel products={products} onDone={refresh} direct={direct} /> : <Card className="p-6 text-sm text-steel">Tu rol puede ver los modelos pero no subirlos ni asignarlos.</Card>}
+        {canWrite ? <UploadPanel products={products} onDone={refresh} direct={direct} blocked={uploadBlocked} /> : <Card className="p-6 text-sm text-steel">Tu rol puede ver los modelos pero no subirlos ni asignarlos.</Card>}
         <Card className="p-6">
           <h2 className="mb-4 font-display text-2xl font-black uppercase">Cobertura 3D</h2>
           <div className="mb-4 grid grid-cols-3 gap-3 text-center">
