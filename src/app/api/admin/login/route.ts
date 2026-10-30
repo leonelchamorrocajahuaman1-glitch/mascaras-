@@ -32,7 +32,14 @@ export async function POST(req: Request) {
   const ownerEmail = process.env.ADMIN_EMAIL;
   const ownerHash = process.env.ADMIN_PASSWORD_HASH;
   if (!ownerEmail || !ownerHash || !process.env.SESSION_SECRET) {
-    return NextResponse.json({ error: "El administrador no está configurado. Ejecuta `npm run setup` y reinicia el servidor." }, { status: 503 });
+    return NextResponse.json(
+      {
+        error: process.env.VERCEL
+          ? "El administrador no está configurado en Vercel: añade ADMIN_EMAIL, ADMIN_PASSWORD_HASH y SESSION_SECRET en Settings → Environment Variables y vuelve a desplegar."
+          : "El administrador no está configurado. Ejecuta `npm run setup` y reinicia el servidor.",
+      },
+      { status: 503 },
+    );
   }
 
   const parsed = loginSchema.safeParse(await req.json().catch(() => null));

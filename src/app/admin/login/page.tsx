@@ -40,7 +40,17 @@ export default async function LoginPage() {
           <div className="hud-corners pointer-events-none absolute inset-3 opacity-60" style={{ ["--c" as string]: "rgba(225,18,31,0.7)" }} />
           {!configured && (
             <p className="mb-5 rounded-xl border border-blood/50 bg-blood/10 p-4 text-sm leading-relaxed">
-              El administrador aún no está configurado. Ejecuta <code className="font-mono text-blood">npm run setup</code> en la carpeta del proyecto y reinicia el servidor.
+              {process.env.VERCEL ? (
+                <>
+                  El administrador aún no está configurado en este despliegue. Añade <code className="font-mono text-blood">ADMIN_EMAIL</code>,{" "}
+                  <code className="font-mono text-blood">ADMIN_PASSWORD_HASH</code> y <code className="font-mono text-blood">SESSION_SECRET</code> en Vercel → Settings →
+                  Environment Variables y vuelve a desplegar (ver docs/DESPLIEGUE-VERCEL.md).
+                </>
+              ) : (
+                <>
+                  El administrador aún no está configurado. Ejecuta <code className="font-mono text-blood">npm run setup</code> en la carpeta del proyecto y reinicia el servidor.
+                </>
+              )}
             </p>
           )}
           <Suspense>
