@@ -1,0 +1,47 @@
+# Abre la web publicada y comprueba que funciona para cualquier visitante.
+# - Se ejecuta solo cuando Vercel informa a GitHub de un despliegue completado.
+# - También se puede lanzar a mano (Actions → "Comprobar web publicada" → Run workflow) con la URL pública.
+name: Comprobar web publicada
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL pública (por ejemplo https://mascaras.vercel.app)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    if: github.event_name == 'workflow_dispatch' || github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comprobar páginas, recursos y protección del panel
+        env:
+          TARGET: ${{ inputs.url || github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+        run: |
+          URL="${TARGET%/}"
+          echo "URL comprobada: $URL"
+          first=$(curl -s -o /dev/null -w "%{http_code}" "$URL/")
+          if [ "$first" = "401" ] || [ "$first" = "403" ]; then
+            echo "::warning::La URL $URL pide inicio de sesión de Vercel (Deployment Protection). Es normal en las URLs únicas de cada despliegue; la URL de producción (*.vercel.app del proyecto) es pública. Lanza este flujo a mano con esa URL."
+            exit 0
+          fi
+          fail=0
+          check () { code=$(curl -s -o /dev/null -w "%{http_code}" "$URL$1"); if [ "$code" = "$2" ]; then echo "✔ $1 → $code"; else echo "✖ $1 → $code (esperado $2)"; fail=1; fi; }
+          for p in / /shop /shop/3d /lab /cart /checkout /admin/login /shop/classic-red; do check "$p" 200; done
+          check /images/renders/classic-red-original.webp 200
+          check /draco/draco_decoder.wasm 200
+          check /pagina-que-no-existe 404
+          admin=$(curl -s -o /dev/null -w "%{http_code}" "$URL/admin")
+          if [ "$admin" = "307" ] || [ "$admin" = "308" ]; then echo "✔ /admin sin sesión → $admin (redirige al login)"; else echo "✖ /admin sin sesión → $admin (debería redirigir)"; fail=1; fi
+          api=$(curl -s -o /dev/null -w "%{http_code}" "$URL/api/admin/products")
+          if [ "$api" = "401" ]; then echo "✔ API del panel sin sesión → 401"; else echo "✖ API del panel sin sesión → $api"; fail=1; fi
+          html=$(curl -s "$URL/")
+          echo "$html" | grep -q "SPIDER" && echo "✔ La portada contiene SPIDER MASKS" || { echo "✖ La portada no contiene el título"; fail=1; }
+          echo "--- /api/health (solo indicadores, sin secretos):"
+          curl -s "$URL/api/health"; echo
+          exit $fail

@@ -6,6 +6,24 @@
 
 > **Por qué no basta con Vercel:** su sistema de archivos es de solo lectura, así que la base local `data/db.json` no puede guardar pedidos ni cambios. Si publicas sin Supabase, la web **arranca en modo solo lectura**: el catálogo se ve, pero no se aceptan pedidos y el panel no puede guardar cambios. Lo indica `/api/health`.
 
+## Publicación rápida (sin configurar nada)
+
+Si solo quieres un **enlace público ya**, no necesitas Supabase ni variables:
+
+1. Entra en https://vercel.com → **Continue with GitHub** y autoriza a Vercel.
+2. **Add New… → Project** → importa `mascaras-`. Si no aparece, pulsa **Adjust GitHub App Permissions** y dale acceso.
+3. No cambies nada y pulsa **Deploy**.
+4. Al terminar, Vercel muestra la URL de producción (`https://<proyecto>.vercel.app`). Ese enlace ya funciona para cualquier persona.
+
+Qué funciona en ese modo:
+- Portada, animaciones, 3D Mask Lab, Galería 3D, catálogo, fichas, carrito y versión móvil.
+- El checkout avisa de que **todavía no se aceptan pedidos**: el modo es de solo lectura hasta que configures Supabase.
+- El panel está protegido; para poder entrar hay que añadir las variables del paso 2.
+
+Cada despliegue se comprueba automáticamente en GitHub (**Actions → Comprobar web publicada**). También puedes lanzar esa comprobación a mano con tu URL.
+
+Para activar pedidos y el panel, sigue los pasos de abajo y vuelve a desplegar.
+
 ## 0. Antes de empezar
 
 - Cuenta de **GitHub** con acceso al repositorio `leonelchamorrocajahuaman1-glitch/mascaras-`.

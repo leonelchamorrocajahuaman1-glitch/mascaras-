@@ -1,0 +1,33 @@
+# Comprueba en un servidor limpio de GitHub que el proyecto instala, pasa la revisión de tipos
+# y compila para producción (lo mismo que hará Vercel). No necesita ningún secreto.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Auditoría de dependencias (producción)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Revisión de tipos
+        run: npm run typecheck
+      - name: Validar modelos 3D de public/models
+        run: npm run models:check
+      - name: Compilar para producción (como Vercel)
+        run: npm run build
+        env:
+          VERCEL: "1"
