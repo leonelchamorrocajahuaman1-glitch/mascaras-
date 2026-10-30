@@ -5,7 +5,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpRight, LayoutGrid, Rows3, Search, X } from "lucide-react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { formatMoney, pad } from "@/lib/format";
-import { MASKS } from "@/lib/masks";
 import { TLink } from "../experience/RouteTransition";
 import { ProductImage } from "./ProductImage";
 import type { CatalogItem } from "./types";
@@ -19,7 +18,7 @@ const SORTS: { value: Sort; label: string }[] = [
   { value: "new", label: "Novedades" },
 ];
 
-export function Catalog({ items }: { items: CatalogItem[] }) {
+export function Catalog({ items, categories }: { items: CatalogItem[]; categories: { slug: string; name: string }[] }) {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -120,14 +119,14 @@ export function Catalog({ items }: { items: CatalogItem[] }) {
             />
           </label>
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none xl:pb-0" role="group" aria-label="Filtrar por colección">
-            {MASKS.map((m) => {
-              const on = cats.includes(m.key);
+            {categories.map((m) => {
+              const on = cats.includes(m.slug);
               return (
                 <button
-                  key={m.key}
+                  key={m.slug}
                   type="button"
                   aria-pressed={on}
-                  onClick={() => setCats((c) => (on ? c.filter((x) => x !== m.key) : [...c, m.key]))}
+                  onClick={() => setCats((c) => (on ? c.filter((x) => x !== m.slug) : [...c, m.slug]))}
                   className={`shrink-0 rounded-full border px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.2em] transition ${
                     on ? "border-blood bg-blood text-white" : "border-bone/15 text-bone/70 hover:border-bone/40"
                   }`}
@@ -205,7 +204,7 @@ export function Catalog({ items }: { items: CatalogItem[] }) {
                 <span className="absolute inset-0 origin-bottom scale-y-0 bg-blood transition-transform duration-500 ease-[var(--ease-cine)] group-hover:scale-y-100" aria-hidden />
                 <span className="relative hidden font-mono text-xs text-steel transition-colors group-hover:text-white md:block">{pad(i + 1)}</span>
                 <div className="relative h-20 w-16 shrink-0 bg-coal md:hidden">
-                  <ProductImage src={item.image} alt={item.name} maskKey={item.category} sizes="64px" className="h-full w-full" />
+                  <ProductImage src={item.image} alt={item.name} maskKey={item.modelKey} sizes="64px" className="h-full w-full" />
                 </div>
                 <div className="relative min-w-0">
                   <p className="truncate font-display text-[clamp(36px,6vw,96px)] font-black uppercase leading-[0.9] transition-transform duration-500 group-hover:translate-x-3">
@@ -234,7 +233,7 @@ export function Catalog({ items }: { items: CatalogItem[] }) {
               <TLink href={`/shop/${item.slug}`} className="group block p-[var(--gutter)]">
                 <div className="relative aspect-[4/5] overflow-hidden bg-coal">
                   <div className="absolute inset-0 opacity-0 transition-opacity duration-700 group-hover:opacity-100" style={{ background: "radial-gradient(60% 50% at 50% 50%, rgba(225,18,31,0.35), transparent)" }} />
-                  <ProductImage src={item.image} alt={item.name} maskKey={item.category} sizes="(max-width: 640px) 100vw, 33vw" className="h-full w-full transition-transform duration-[1.2s] ease-[var(--ease-out-expo)] group-hover:scale-105" />
+                  <ProductImage src={item.image} alt={item.name} maskKey={item.modelKey} sizes="(max-width: 640px) 100vw, 33vw" className="h-full w-full transition-transform duration-[1.2s] ease-[var(--ease-out-expo)] group-hover:scale-105" />
                   <div className="hud-corners pointer-events-none absolute inset-3 opacity-0 transition-opacity group-hover:opacity-100" />
                   {item.stock === 0 && <span className="absolute left-4 top-4 rounded-full bg-ink/80 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em]">Agotado</span>}
                 </div>
@@ -256,7 +255,7 @@ export function Catalog({ items }: { items: CatalogItem[] }) {
         {hovered && (
           <div className="relative h-full w-full overflow-hidden bg-coal shadow-[0_30px_80px_rgba(0,0,0,0.6)]">
             <div className="absolute inset-0" style={{ background: "radial-gradient(60% 50% at 50% 50%, rgba(225,18,31,0.35), transparent)" }} />
-            <ProductImage src={hovered.image} alt="" maskKey={hovered.category} sizes="256px" className="h-full w-full" />
+            <ProductImage src={hovered.image} alt="" maskKey={hovered.modelKey} sizes="256px" className="h-full w-full" />
             <div className="hud-corners absolute inset-3" />
           </div>
         )}

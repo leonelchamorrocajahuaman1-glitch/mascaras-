@@ -5,9 +5,14 @@ import { Footer } from "@/components/experience/Footer";
 import { Preloader } from "@/components/experience/Preloader";
 import { RouteTransitionProvider } from "@/components/experience/RouteTransition";
 import { CartDrawer } from "@/components/shop/CartDrawer";
+import { StoreSettingsProvider } from "@/lib/store/settings";
+import { toPublicSettings } from "@/lib/public-settings";
+import { db } from "@/lib/db";
 
-export default function SiteLayout({ children }: { children: React.ReactNode }) {
+export default async function SiteLayout({ children }: { children: React.ReactNode }) {
+  const settings = toPublicSettings(await db().getSettings());
   return (
+    <StoreSettingsProvider value={settings}>
     <RouteTransitionProvider>
       <div className="grain">
         <SmoothScroll />
@@ -19,5 +24,6 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         <Footer />
       </div>
     </RouteTransitionProvider>
+    </StoreSettingsProvider>
   );
 }

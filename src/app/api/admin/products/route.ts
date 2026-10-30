@@ -1,26 +1,25 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
-import { db, DbError } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth/server";
-import { firstIssue, productInputSchema } from "@/lib/validation";
+import { db } from "@/lib/db";
+import { actorLabel, requireAdmin } from "@/lib/auth/server";
+import { productInputSchema } from "@/lib/validation";
+import { apiError, parseBody, refreshStore } from "@/lib/api";
 
 export async function GET(req: Request) {
-  const { error } = await requireAdmin(req);
+  const { error } = await requireAdmin(req, "products:view");
   if (error) return error;
   return NextResponse.json({ products: await db().listProducts({ includeInactive: true }) });
 }
 
 export async function POST(req: Request) {
-  const { error } = await requireAdmin(req);
+  const { session, error } = await requireAdmin(req, "products:write");
   if (error) return error;
-  const parsed = productInputSchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
+  const body = await parseBody(req, productInputSchema);
+  if (body.error) return body.error;
   try {
-    const product = await db().createProduct(parsed.data);
-    revalidatePath("/", "layout");
+    const product = await db().createProduct(body.data, actorLabel(session));
+    refreshStore();
     return NextResponse.json({ product }, { status: 201 });
   } catch (err) {
-    if (err instanceof DbError) return NextResponse.json({ error: err.message }, { status: err.status });
-    throw err;
+    return apiError(err);
   }
 }

@@ -1,18 +1,23 @@
 import { redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/auth/server";
 import { db } from "@/lib/db";
-import { AdminNav } from "@/components/admin/AdminNav";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 export const dynamic = "force-dynamic";
 
-/** Segunda barrera de autorización (además del proxy): se verifica la sesión en el servidor. */
+/** Segunda barrera (además del proxy): sesión verificada contra la base de datos en el servidor. */
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
-  const session = await getAdminSession().catch(() => null);
+  const session = await getAdminSession();
   if (!session) redirect("/admin/login");
+  const repo = db();
+  const [orders, products, settings] = await Promise.all([repo.listOrders(), repo.listProducts({ includeInactive: true }), repo.getSettings()]);
+  const alerts = {
+    pendingOrders: orders.filter((o) => o.status === "pending" && !o.isTest).length,
+    lowStock: products.filter((p) => p.active).flatMap((p) => p.variants).filter((v) => v.stock <= settings.lowStockThreshold).length,
+  };
   return (
-    <div className="lg:flex">
-      <AdminNav email={session.sub} dbKind={db().kind} />
-      <main className="min-w-0 flex-1 p-5 lg:p-10">{children}</main>
-    </div>
+    <AdminShell session={{ email: session.email, name: session.name, role: session.role }} dbKind={repo.kind} alerts={alerts}>
+      {children}
+    </AdminShell>
   );
 }

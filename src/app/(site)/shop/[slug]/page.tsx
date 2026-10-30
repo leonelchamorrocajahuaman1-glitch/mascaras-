@@ -4,7 +4,6 @@ import { db } from "@/lib/db";
 import { productGallery, productImage } from "@/lib/assets";
 import { MASK_BY_KEY } from "@/lib/masks";
 import { formatMoney, pad } from "@/lib/format";
-import { siteConfig } from "@/lib/config";
 import { ProductImage } from "@/components/shop/ProductImage";
 import { ProductPurchase } from "@/components/shop/ProductPurchase";
 import { ProductMedia } from "@/components/shop/ProductMedia";
@@ -27,7 +26,7 @@ export default async function ProductPage({ params }: Params) {
 
   const mask = MASK_BY_KEY[product.modelKey] ?? MASK_BY_KEY["classic-red"];
   const gallery = productGallery(product);
-  const model = resolveModel(product.modelUrl);
+  const [model, settings] = await Promise.all([resolveModel(product.modelUrl), db().getSettings()]);
   const all = await db().listProducts();
   const related = all.filter((p) => p.id !== product.id).slice(0, 3);
 
@@ -71,7 +70,7 @@ export default async function ProductPage({ params }: Params) {
             />
           </div>
           <dl className="mt-12 divide-y divide-bone/10 border-y border-bone/10 text-sm">
-            <div className="flex justify-between py-4"><dt className="text-steel">Envío</dt><dd>{formatMoney(siteConfig.shippingCents)} · gratis desde {formatMoney(siteConfig.freeShippingFromCents)}</dd></div>
+            <div className="flex justify-between py-4"><dt className="text-steel">Envío</dt><dd>{formatMoney(settings.shippingCents)} · gratis desde {formatMoney(settings.freeShippingFromCents)}</dd></div>
             <div className="flex justify-between py-4"><dt className="text-steel">Pago</dt><dd>Demostración — sin cobro real</dd></div>
             <div className="flex justify-between py-4"><dt className="text-steel">Modelo 3D</dt><dd>{model ? `GLB · ${model.name}` : "Pendiente de archivo GLB"}</dd></div>
           </dl>

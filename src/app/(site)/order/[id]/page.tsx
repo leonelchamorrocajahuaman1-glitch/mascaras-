@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Circle, XCircle } from "lucide-react";
 import { db } from "@/lib/db";
 import { formatDate, formatMoney } from "@/lib/format";
-import { ORDER_STATUS_LABEL } from "@/lib/types";
+import { ORDER_STATUS_LABEL, PAYMENT_METHOD_LABEL, PAYMENT_STATUS_LABEL, type OrderStatus } from "@/lib/types";
 import { TLink } from "@/components/experience/RouteTransition";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Pedido registrado", robots: { index: false } };
+export const metadata: Metadata = { title: "Tu pedido", robots: { index: false } };
+
+const FLOW: OrderStatus[] = ["pending", "confirmed", "processing", "shipped", "delivered"];
 
 export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,18 +17,49 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const order = await db().getOrder(id);
   if (!order) notFound();
 
+  const reached = (s: OrderStatus) => order.history.find((h) => h.type === "status" && h.status === s);
+  const currentIdx = FLOW.indexOf(order.status);
+  const cancelled = order.status === "cancelled";
+
   return (
     <div className="min-h-screen px-[var(--gutter)] pb-32 pt-32">
       <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.3em] text-blood">
-        <CheckCircle2 size={14} /> Pedido #{order.number} registrado
+        <CheckCircle2 size={14} /> Pedido #{order.number}
       </p>
       <h1 className="mt-4 font-display text-[clamp(64px,10vw,180px)] font-black uppercase leading-[0.82]">
         Gracias, <span className="text-outline">{order.customer.name.split(" ")[0]}</span>
       </h1>
-      <div className="mt-8 max-w-2xl rounded-2xl border border-blood/40 bg-blood/10 p-5 text-sm leading-relaxed">
-        Este pedido es de <strong>demostración</strong>: no se ha realizado ningún cobro. Estado actual: <strong>{ORDER_STATUS_LABEL[order.status]}</strong> · pago: no procesado.
-        Guarda esta página para consultar el estado más adelante.
-      </div>
+
+      {/* Seguimiento: el estado lo actualiza la tienda desde su panel */}
+      <section aria-label="Estado del pedido" className="mt-10 max-w-4xl">
+        {cancelled ? (
+          <p className="flex items-center gap-3 rounded-2xl border border-bone/15 bg-coal p-5 text-sm">
+            <XCircle className="text-blood" size={18} /> Este pedido fue <strong>cancelado</strong>
+            {reached("cancelled") ? ` el ${formatDate(reached("cancelled")!.at)}` : ""}.
+          </p>
+        ) : (
+          <ol className="grid gap-3 sm:grid-cols-5">
+            {FLOW.map((s, i) => {
+              const done = i <= currentIdx;
+              const at = reached(s)?.at;
+              return (
+                <li key={s} className={`rounded-2xl border p-4 ${i === currentIdx ? "border-blood bg-blood/10" : done ? "border-bone/20" : "border-bone/10 opacity-50"}`}>
+                  <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em]">
+                    {done ? <CheckCircle2 size={13} className="text-blood" /> : <Circle size={13} />} {ORDER_STATUS_LABEL[s]}
+                  </span>
+                  <span className="mt-1 block text-[11px] text-steel">{at ? formatDate(at) : "—"}</span>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+        <p className="mt-4 rounded-2xl border border-bone/10 p-4 text-sm leading-relaxed text-bone/80">
+          Pago: <strong>{PAYMENT_STATUS_LABEL[order.paymentStatus]}</strong>
+          {order.paymentStatus === "paid" ? ` · ${PAYMENT_METHOD_LABEL[order.paymentMethod]}` : " · no se ha realizado ningún cobro en la web"}. Guarda esta página
+          para consultar el estado de tu pedido.
+        </p>
+      </section>
+
       <div className="mt-12 grid gap-10 lg:grid-cols-[1.5fr_1fr]">
         <ul className="divide-y divide-bone/10 border-y border-bone/10">
           {order.items.map((i) => (

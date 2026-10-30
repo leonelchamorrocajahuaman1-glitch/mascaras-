@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, ImagePlus, Loader2, Plus, Save, Trash2, X } from "lucide-react";
 import { MASKS } from "@/lib/masks";
 import { slugify } from "@/lib/format";
-import type { MaskKey, Product } from "@/lib/types";
+import type { Category, MaskKey, Product } from "@/lib/types";
+import { adminFetch, useFeedback } from "./feedback";
 
 type VariantDraft = { id?: string; name: string; sku: string; stock: string; price: string };
 
@@ -22,13 +23,14 @@ export interface ModelOption {
   ok: boolean;
 }
 
-export function ProductForm({ product, models = [] }: { product?: Product; models?: ModelOption[] }) {
+export function ProductForm({ product, models = [], categories }: { product?: Product; models?: ModelOption[]; categories: Category[] }) {
   const router = useRouter();
+  const { toast } = useFeedback();
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(product?.name ?? "");
   const [slug, setSlug] = useState(product?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(product));
-  const [category, setCategory] = useState<MaskKey>(product?.category ?? "classic-red");
+  const [category, setCategory] = useState<string>(product?.category ?? categories[0]?.slug ?? "");
   const [modelKey, setModelKey] = useState<MaskKey>(product?.modelKey ?? "classic-red");
   const [modelUrl, setModelUrl] = useState<string>(product?.modelUrl ?? "");
   const [tagline, setTagline] = useState(product?.tagline ?? "");
@@ -84,7 +86,11 @@ export function ProductForm({ product, models = [] }: { product?: Product; model
     setError(null);
     setSaved(false);
     const priceCents = toCents(price);
-    if (priceCents === null || Number.isNaN(priceCents)) return setError("Introduce un precio válido.");
+    if (priceCents === null || Number.isNaN(priceCents) || priceCents < 0) return setError("Introduce un precio válido.");
+    const compareCents = toCents(compare);
+    if (compareCents !== null && (Number.isNaN(compareCents) || compareCents <= priceCents)) return setError("El precio anterior debe ser mayor que el precio actual (o déjalo vacío).");
+    if (!category) return setError("Elige una categoría (créala en Productos → Categorías).");
+    if (variants.some((v) => !v.name.trim())) return setError("Todas las variantes necesitan nombre.");
     const body = {
       name,
       slug,
@@ -94,7 +100,7 @@ export function ProductForm({ product, models = [] }: { product?: Product; model
       tagline,
       description,
       priceCents,
-      compareAtCents: toCents(compare),
+      compareAtCents: compareCents,
       featured,
       active,
       images,
@@ -108,21 +114,26 @@ export function ProductForm({ product, models = [] }: { product?: Product; model
     };
     if (body.variants.some((v) => v.priceCents !== null && Number.isNaN(v.priceCents))) return setError("Revisa los precios de las variantes.");
     setSaving(true);
-    const res = await fetch(product ? `/api/admin/products/${product.id}` : "/api/admin/products", {
-      method: product ? "PUT" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json().catch(() => ({}));
-    setSaving(false);
-    if (!res.ok) return setError(data.error ?? "No se pudo guardar.");
-    if (!product) {
-      router.replace(`/admin/products/${data.product.id}`);
-    } else {
-      setSaved(true);
-      setVariants(data.product.variants.map((v: Product["variants"][number]) => ({ id: v.id, name: v.name, sku: v.sku, stock: String(v.stock), price: toMoney(v.priceCents) })));
+    try {
+      const data = await adminFetch<{ product: Product }>(product ? `/api/admin/products/${product.id}` : "/api/admin/products", {
+        method: product ? "PUT" : "POST",
+        json: body,
+      });
+      if (!product) {
+        toast("Producto creado. Ya está en la tienda si es visible.");
+        router.replace(`/admin/productos/${data.product.id}`);
+      } else {
+        setSaved(true);
+        toast("Cambios guardados y publicados en la tienda.");
+        setVariants(data.product.variants.map((v) => ({ id: v.id, name: v.name, sku: v.sku, stock: String(v.stock), price: toMoney(v.priceCents) })));
+      }
+      router.refresh();
+    } catch (err) {
+      setError((err as Error).message);
+      toast((err as Error).message, "error");
+    } finally {
+      setSaving(false);
     }
-    router.refresh();
   };
 
   return (
@@ -165,12 +176,12 @@ export function ProductForm({ product, models = [] }: { product?: Product; model
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-2">
               <span className={labelCls}>Colección</span>
-              <select value={category} onChange={(e) => setCategory(e.target.value as MaskKey)} className={input}>
-                {MASKS.map((m) => <option key={m.key} value={m.key}>{m.name}</option>)}
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className={input} required>
+                {categories.map((c) => <option key={c.id} value={c.slug}>{c.name}{c.active ? "" : " (oculta)"}</option>)}
               </select>
             </label>
             <label className="block space-y-2">
-              <span className={labelCls}>Estilo procedural (laboratorio)</span>
+              <span className={labelCls}>Estilo del laboratorio 3D</span>
               <select value={modelKey} onChange={(e) => setModelKey(e.target.value as MaskKey)} className={input}>
                 {MASKS.map((m) => <option key={m.key} value={m.key}>{m.name}</option>)}
               </select>
@@ -190,8 +201,8 @@ export function ProductForm({ product, models = [] }: { product?: Product; model
             </select>
             <span className="block text-xs text-steel">
               {models.length
-                ? "Archivos detectados en public/models. Se muestra en la ficha, en la Galería 3D y en el laboratorio."
-                : "No hay archivos en public/models. Copia allí tus .glb y recarga esta página."}
+                ? "Modelos registrados en Modelos 3D. Se muestra en la ficha, en la Galería 3D y en el laboratorio."
+                : "No hay modelos todavía: súbelos en el módulo Modelos 3D."}
             </span>
           </label>
         </section>
@@ -239,17 +250,24 @@ export function ProductForm({ product, models = [] }: { product?: Product; model
 
       <div className="space-y-6">
         <section className="space-y-4 rounded-2xl border border-bone/10 p-6">
-          <h2 className="font-display text-2xl font-black uppercase">Precio</h2>
+          <h2 className="font-display text-2xl font-black uppercase">Precio y visibilidad</h2>
           <div className="grid grid-cols-2 gap-4">
             <label className="block space-y-2">
               <span className={labelCls}>Precio (USD)</span>
               <input required inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} className={input} />
             </label>
             <label className="block space-y-2">
-              <span className={labelCls}>Precio anterior</span>
+              <span className={labelCls}>Precio anterior (descuento)</span>
               <input inputMode="decimal" value={compare} onChange={(e) => setCompare(e.target.value)} placeholder="opcional" className={input} />
             </label>
           </div>
+          {(() => {
+            const pc = toCents(price);
+            const cc = toCents(compare);
+            return pc !== null && cc !== null && cc > pc ? (
+              <p className="text-xs text-blood">Descuento visible en la tienda: -{Math.round((1 - pc / cc) * 100)}%</p>
+            ) : null;
+          })()}
           <label className="flex items-center gap-3 text-sm">
             <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="h-4 w-4 accent-[#e1121f]" /> Visible en la tienda
           </label>

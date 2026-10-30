@@ -14,7 +14,7 @@ export default async function LabPage({ searchParams }: { searchParams: Promise<
   const products = await activeProducts();
   return (
     <div className="pt-0">
-      <MaskLab standalone initialModel={initial} initialGlb={glb} glbModels={labGlbModels(products)} models={availableModels()} shopSlugs={shopSlugsByModel(products)} />
+      <MaskLab standalone initialModel={initial} initialGlb={glb} glbModels={await labGlbModels(products)} models={availableModels()} shopSlugs={shopSlugsByModel(products)} />
     </div>
   );
 }

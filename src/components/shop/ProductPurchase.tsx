@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Check, ShoppingBag, Box } from "lucide-react";
 import { formatMoney } from "@/lib/format";
-import { siteConfig } from "@/lib/config";
+import { useStoreSettings } from "@/lib/store/settings";
 import { useCart } from "@/lib/store/cart";
 import { useExperience } from "@/lib/store/experience";
 import type { MaskKey } from "@/lib/types";
@@ -32,10 +32,11 @@ export function ProductPurchase({ product }: Props) {
   const inCart = useCart((s) => s.lines.find((l) => l.variantId === variantId)?.quantity ?? 0);
   const setCartOpen = useExperience((s) => s.setCartOpen);
 
+  const settings = useStoreSettings();
   const variant = product.variants.find((v) => v.id === variantId);
   const price = variant?.priceCents ?? product.priceCents;
   const available = Math.max(0, (variant?.stock ?? 0) - inCart);
-  const maxQty = Math.min(available, siteConfig.maxQuantityPerItem);
+  const maxQty = Math.min(available, settings.maxQuantityPerItem);
 
   const onAdd = () => {
     if (!variant || maxQty < 1) return;
@@ -95,7 +96,7 @@ export function ProductPurchase({ product }: Props) {
         <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-steel" aria-live="polite">
           {variant && variant.stock > 0 ? (
             <>
-              <span className={variant.stock <= 3 ? "text-blood" : "text-bone/80"}>{variant.stock <= 3 ? `Últimas ${variant.stock} unidades` : `${variant.stock} en stock`}</span>
+              <span className={variant.stock <= settings.lowStockThreshold ? "text-blood" : "text-bone/80"}>{variant.stock <= settings.lowStockThreshold ? `Últimas ${variant.stock} unidades` : `${variant.stock} en stock`}</span>
               {inCart > 0 && ` · ${inCart} en tu carrito`} · SKU {variant.sku}
             </>
           ) : (

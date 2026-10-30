@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "admin:hash": "node scripts/hash-password.mjs",
     "db:reset": "node scripts/reset-db.mjs",
-    "models:check": "node scripts/check-models.mjs"
+    "models:check": "node scripts/check-models.mjs",
+    "test:e2e": "node scripts/test-admin.mjs"
   },
   "engines": {
     "node": ">=20.9"

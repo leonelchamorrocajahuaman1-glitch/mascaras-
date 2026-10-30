@@ -4,7 +4,8 @@ export interface CatalogItem {
   id: string;
   slug: string;
   name: string;
-  category: MaskKey;
+  category: string;
+  modelKey: MaskKey;
   categoryName: string;
   code: string;
   tagline: string;

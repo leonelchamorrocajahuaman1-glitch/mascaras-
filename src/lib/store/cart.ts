@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { siteConfig, shippingFor } from "../config";
+import { shippingFor, type PublicSettings } from "../public-settings";
 
 export interface CartLine {
   productId: string;
@@ -27,7 +27,8 @@ interface CartState {
   reconcile: (fresh: Map<string, { unitPriceCents: number; stock: number; name: string; variantName: string }>) => void;
 }
 
-const clampQty = (qty: number, max: number) => Math.max(1, Math.min(qty, max, siteConfig.maxQuantityPerItem));
+/** El límite por artículo configurable lo vuelve a aplicar el servidor al crear el pedido. */
+const clampQty = (qty: number, max: number) => Math.max(1, Math.min(qty, max, 100));
 
 export const useCart = create<CartState>()(
   persist(
@@ -67,9 +68,9 @@ export const useCart = create<CartState>()(
   ),
 );
 
-export function cartTotals(lines: CartLine[]) {
+export function cartTotals(lines: CartLine[], settings?: Pick<PublicSettings, "shippingCents" | "freeShippingFromCents">) {
   const subtotal = lines.reduce((s, l) => s + l.unitPriceCents * l.quantity, 0);
-  const shipping = shippingFor(subtotal);
+  const shipping = settings ? shippingFor(subtotal, settings) : 0;
   const count = lines.reduce((s, l) => s + l.quantity, 0);
   return { subtotal, shipping, total: subtotal + shipping, count };
 }

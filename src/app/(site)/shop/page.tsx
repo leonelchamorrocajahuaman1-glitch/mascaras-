@@ -5,6 +5,7 @@ import { Catalog } from "@/components/shop/Catalog";
 import { TLink } from "@/components/experience/RouteTransition";
 import type { CatalogItem } from "@/components/shop/types";
 import { activeProducts } from "@/lib/catalog";
+import { db } from "@/lib/db";
 import Image from "next/image";
 import { backgroundImage, productImage } from "@/lib/assets";
 import { MASK_BY_KEY } from "@/lib/masks";
@@ -13,13 +14,15 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Shop", description: "Catálogo de máscaras SPIDER MASKS." };
 
 export default async function ShopPage() {
-  const products = await activeProducts();
+  const [products, categories] = await Promise.all([activeProducts(), db().listCategories()]);
+  const catName = new Map(categories.map((c) => [c.slug, c.name]));
   const items: CatalogItem[] = products.map((p) => ({
     id: p.id,
     slug: p.slug,
     name: p.name,
     category: p.category,
-    categoryName: MASK_BY_KEY[p.category]?.name ?? p.category,
+    categoryName: catName.get(p.category) ?? p.category,
+    modelKey: p.modelKey,
     code: MASK_BY_KEY[p.modelKey]?.code ?? "",
     tagline: p.tagline,
     priceCents: p.priceCents,
@@ -57,7 +60,7 @@ export default async function ShopPage() {
         </TLink>
       </header>
       <Suspense>
-        <Catalog items={items} />
+        <Catalog items={items} categories={categories.filter((c) => products.some((p) => p.category === c.slug)).map((c) => ({ slug: c.slug, name: c.name }))} />
       </Suspense>
       <div className="h-32" />
     </div>

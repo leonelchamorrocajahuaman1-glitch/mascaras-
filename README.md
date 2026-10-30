@@ -67,33 +67,38 @@ Otros comandos: `npm run typecheck`, `npm run models:check` (valida los GLB de `
 - Carrito lateral y `/cart`: modificar cantidades, eliminar, total automático, envío gratis desde un umbral, persistencia. Al abrir el carrito o el checkout se revalidan precios y stock con el servidor.
 - `/checkout` → `/order/[id]`: el servidor recalcula precios, valida y descuenta stock de forma atómica y registra el pedido.
 
-**Panel de administración (`/admin`)**
-- Inicio de sesión seguro, resumen (pedidos, ventas demo, stock bajo).
-- Productos: crear, editar, eliminar, precios, precio anterior, visibilidad, destacado, variantes con stock y precio propio, subida/orden de imágenes.
-- Pedidos: listado con filtros y búsqueda, detalle, cambio de estado (cancelar repone stock; reactivar lo vuelve a descontar).
+**Panel de administración (`/admin`)** — guía completa en **[`docs/ADMIN.md`](docs/ADMIN.md)**
+- **Acceso** (`/admin/login`) con roles: Propietario (definido en `.env.local`), Administrador y Personal. No hay registro público.
+- **Dashboard**: ventas totales, ingresos del día y del mes, cobrado, pedidos, productos disponibles, stock bajo, agotados, últimos pedidos y gráfico de ventas por día o mes (con vista de tabla).
+- **Productos** (`/admin/productos`): crear, editar, eliminar con confirmación, activar/desactivar, destacar, precios y descuentos, variantes y stock, fotos; búsqueda, filtros y orden. **Categorías** (`/admin/productos/categorias`).
+- **Modelos 3D** (`/admin/modelos-3d`): subir `.glb`/`.gltf` con validación, visor 3D, autor/origen/licencia/rotación, asignar, cambiar o quitar en productos, cobertura de productos con y sin modelo.
+- **Pedidos** (`/admin/pedidos`): filtros, ficha con cliente, artículos, totales, método y estado de pago, estados (pendiente → confirmado → preparando → enviado → entregado / cancelado) e historial. El cliente ve el estado en su página de pedido.
+- **Clientes** (`/admin/clientes`): búsqueda, historial de pedidos, notas y suspensión.
+- **Inventario** (`/admin/inventario`): stock por variante, entradas/salidas/recuentos con motivo, alertas y historial de movimientos.
+- **Configuración** (`/admin/configuracion`): envío, umbral de stock, máximo por artículo, pausar pedidos, aviso del checkout y usuarios del panel.
 
 ## Seguridad
 
 - Ninguna clave privada llega al navegador: `.env.local` solo se lee en el servidor y está en `.gitignore`.
-- Contraseña de administrador almacenada como hash **scrypt**; comparación en tiempo constante.
-- Sesión firmada (HS256) en cookie `httpOnly`, `SameSite=Lax`, 8 h de duración.
-- Doble verificación: `src/proxy.ts` bloquea `/admin` y `/api/admin` sin sesión, y cada ruta/página del panel vuelve a comprobarla en el servidor.
-- Protección CSRF por comprobación de `Origin` en todas las peticiones de escritura del panel.
+- Contraseñas (propietario y usuarios del panel) con hash **scrypt**; comparación en tiempo constante y tiempo de respuesta igualado aunque el email no exista.
+- Sesión firmada (HS256) en cookie `httpOnly`, `SameSite=Strict`, 8 h. En cada petición el servidor comprueba que el usuario sigue existiendo y activo y lee su rol actual de la base de datos. Cambiar contraseña o rol, o desactivar a un usuario, invalida sus sesiones al instante.
+- Triple barrera: `src/proxy.ts` bloquea `/admin` y `/api/admin` sin token válido; cada página del panel exige sesión y permiso; cada ruta de la API comprueba sesión, **permiso del rol** y `Origin` (CSRF).
 - Límite de intentos de inicio de sesión (5 cada 15 min por IP) y de pedidos.
-- Subidas: solo JPG/PNG/WebP/AVIF detectados por firma binaria (no por extensión), máx. 5 MB, nombre aleatorio; SVG rechazado.
-- Precios y stock **siempre** se calculan en el servidor; el carrito del navegador no es de confianza.
-- Limitación conocida: cerrar sesión borra la cookie, pero un token copiado seguiría siendo válido hasta caducar (sesión sin estado). Cambiar `SESSION_SECRET` invalida todas las sesiones.
+- Subidas de imágenes: JPG/PNG/WebP/AVIF detectados por firma binaria, máx. 5 MB, nombre aleatorio; SVG rechazado. Modelos 3D: validados como glTF 2.0 antes de guardarse, máx. 60 MB, nombres restringidos.
+- Precios, envío, límites y stock **siempre** se calculan en el servidor; el carrito del navegador no es de confianza.
 
 ## Base de datos
 
-Tienda y panel comparten siempre el mismo repositorio de datos (`src/lib/db`):
+Tienda y panel comparten siempre el mismo repositorio de datos (`src/lib/db`): productos, categorías, precios, stock, pedidos, clientes, movimientos de inventario, modelos 3D, usuarios del panel y configuración.
 
-- **Local (por defecto):** `data/db.json`, creado automáticamente con el catálogo demo. Las imágenes subidas van a `data/uploads/` y se sirven por `/api/uploads/...`. Ideal para desarrollo en Windows sin servicios externos (válido para un único servidor).
+- **Local (por defecto):** `data/db.json`, creado automáticamente con el catálogo inicial y migrado solo al actualizar (las bases antiguas conservan sus datos). Imágenes subidas en `data/uploads/` y modelos subidos en `data/models/`. Ideal para un único servidor en tu PC.
 - **Supabase (producción):**
   1. Crea un proyecto en https://supabase.com.
-  2. En *SQL Editor*, ejecuta el contenido de `supabase/schema.sql` (tablas, RLS, funciones atómicas `place_order` y `set_order_status`, bucket `product-images`).
+  2. En *SQL Editor*, ejecuta **todo** `supabase/schema.sql`. Es idempotente: crea tablas, migra una base anterior, activa RLS y crea las funciones atómicas (`place_order`, `set_order_status`, `adjust_stock`) y los buckets `product-images` y `models`.
   3. En `.env.local` rellena `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` (*Project Settings → API*; la service role es secreta y solo la usa el servidor).
-  4. Reinicia `npm run dev`, entra en `/admin` y pulsa **Importar catálogo de demostración**.
+  4. Reinicia `npm run dev`, entra en `/admin` y pulsa **Importar catálogo inicial**.
+  - RLS: todas las tablas tienen RLS activado **sin políticas** para `anon` y `authenticated`, así que nadie puede leer ni escribir directamente con la clave pública. Todo pasa por el servidor, que comprueba sesión y permisos. Los clientes no tienen cuentas de Supabase: solo ven su pedido a través de un enlace con un identificador imposible de adivinar.
+  - El adaptador de Supabase **no se ha probado contra un proyecto real** en este entorno (las pruebas automáticas usan la base local). Ejecuta `npm run test:e2e` después de configurarlo.
 
 ## Imágenes
 
@@ -103,20 +108,35 @@ Mientras tanto, la web usa **renders reales del modelo 3D** (`public/images/rend
 
 ## Modelos 3D
 
-La web carga **archivos GLB/GLTF reales** que coloques en `public/models/`. Guía completa (descarga manual desde Tripo, licencias, metadata, validación y asignación): **[`docs/MODELOS-3D.md`](docs/MODELOS-3D.md)**.
+La web muestra **archivos GLB/GLTF reales**. Guía completa (descarga desde Tripo, licencias, subida y asignación): **[`docs/MODELOS-3D.md`](docs/MODELOS-3D.md)**.
 
-- Se detectan automáticamente y se validan con `npm run models:check` o en **Admin → Modelos 3D** (con vista previa).
-- Cada producto puede tener su archivo (**Admin → Productos → editar → "Modelo 3D (GLB real)"**). Con él se muestra:
-  - una vista 3D en la ficha: girar, ampliar y ángulos predefinidos;
+- Súbelos desde **Admin → Modelos 3D**, o cópialos en `public/models/` (se registran automáticamente). Se validan antes de usarse; `npm run models:check` valida los de la carpeta.
+- Asigna cada modelo a un producto (en Modelos 3D o en la ficha del producto). Con él se muestra:
+  - una vista 3D en la ficha del producto: girar, ampliar y ángulos predefinidos;
   - una tarjeta 3D interactiva en la **Galería 3D** (`/shop/3d`);
   - una entrada en el **3D Mask Lab**.
-- Metadata opcional en `public/models/models.json` (nombre, autor, origen, licencia y rotación). Plantilla: `public/models/models.example.json`.
-- Draco y Meshopt están soportados sin CDN: el decodificador va en `public/draco/`.
-- Los productos sin archivo siguen usando el modelo procedural del laboratorio y sus imágenes.
+- Draco y Meshopt funcionan sin CDN: el decodificador va en `public/draco/`.
+- Ahora mismo **no hay ningún modelo en el proyecto**: los de Tripo hay que descargarlos manualmente.
 
 ## Pagos
 
-No hay ninguna pasarela integrada y la web lo indica en el checkout, la confirmación y el panel. Para cobrar de verdad habría que integrar, por ejemplo, Stripe Checkout: crear la sesión de pago en el servidor a partir del pedido, y marcar `paymentStatus = "paid"` solo desde el webhook firmado de Stripe.
+No hay pasarela de pago integrada; la web lo indica en el checkout, en la página del pedido y en el panel. Los pedidos se crean como **No pagado** con método "Sin pasarela de pago". Cuando recibas un pago por otro medio (transferencia, efectivo, TPV), regístralo en la ficha del pedido con su referencia; queda en el historial con quién lo hizo. Para cobrar en línea habría que integrar, por ejemplo, Stripe Checkout y marcar el pago **solo** desde su webhook firmado.
+
+## Pruebas
+
+```bash
+npm run test:e2e
+```
+
+Requiere el servidor en marcha (`npm run dev` o `npm run start`) y la contraseña del propietario en `ADMIN_TEST_PASSWORD`. En PowerShell:
+
+```bash
+$env:ADMIN_TEST_PASSWORD="tu-contraseña"; npm run test:e2e
+```
+
+Opcional: `$env:TEST_GLB="C:\ruta\modelo.glb"` para probar también la subida y el visor de un GLB real, y `$env:BASE_URL="http://localhost:3001"` si usas otro puerto.
+
+Recorre la tienda, la protección del panel, CRUD de productos y categorías con su reflejo en la tienda, modelos 3D, flujo de pedidos y stock (incluida la cancelación doble), inventario, clientes suspendidos, permisos por rol y el dashboard. Los datos que crea llevan `[PRUEBA]` o `@spidermasks.test` y se borran al final.
 
 ## Estructura
 
@@ -124,8 +144,8 @@ No hay ninguna pasarela integrada y la web lo indica en el checkout, la confirma
 src/
 ├─ app/
 │  ├─ (site)/            portada, shop, lab, cart, checkout, order (con cabecera, preloader, scroll suave)
-│  ├─ admin/             login + (panel) protegido: resumen, productos, pedidos
-│  ├─ api/               products, orders, uploads y admin/* (login, logout, products, orders, upload, seed)
+│  ├─ admin/             login + (panel): dashboard, productos, modelos-3d, pedidos, clientes, inventario, configuracion
+│  ├─ api/               products, orders, uploads, model-files y admin/* (una ruta por módulo, con permisos)
 │  └─ (tools)/studio     renders de producto (solo desarrollo)
 ├─ components/
 │  ├─ experience/        preloader, cabecera, menú, cursor, telón, Lenis, marquee…
@@ -134,9 +154,11 @@ src/
 │  ├─ three/             geometría, shader, escenas, luces, partículas, cargador GLB, ilustración SVG
 │  ├─ shop/              catálogo, ficha, carrito, checkout
 │  └─ admin/             formularios y tablas del panel
-├─ lib/                  config, tipos, máscaras, db (local/supabase), auth, validación, stores
+├─ lib/                  config, tipos, máscaras, db (local/supabase), auth + permisos, validación, stats, stores
 └─ proxy.ts              protección de /admin y /api/admin
-supabase/schema.sql      esquema para Supabase
+supabase/schema.sql      esquema + migración para Supabase
+scripts/test-admin.mjs   pruebas de extremo a extremo (npm run test:e2e)
+docs/ADMIN.md            guía del panel de administración
 docs/PROMPTS-IMAGENES.md imágenes a generar con ChatGPT
 ```
 

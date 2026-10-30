@@ -1,19 +1,20 @@
 import { NextResponse } from "next/server";
-import { db, DbError } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth/server";
-import { firstIssue, orderStatusSchema } from "@/lib/validation";
+import { db } from "@/lib/db";
+import { actorLabel, requireAdmin } from "@/lib/auth/server";
+import { orderStatusSchema } from "@/lib/validation";
+import { apiError, parseBody, refreshStore } from "@/lib/api";
 
+/** Cambio de estado. Cancelar repone stock y reactivar lo vuelve a descontar (una sola vez). */
 export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { error } = await requireAdmin(req);
+  const { session, error } = await requireAdmin(req, "orders:update");
   if (error) return error;
-  const { id } = await ctx.params;
-  const parsed = orderStatusSchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
+  const body = await parseBody(req, orderStatusSchema);
+  if (body.error) return body.error;
   try {
-    const order = await db().updateOrderStatus(id, parsed.data.status);
+    const order = await db().updateOrderStatus((await ctx.params).id, body.data.status, actorLabel(session), body.data.note);
+    refreshStore();
     return NextResponse.json({ order });
   } catch (err) {
-    if (err instanceof DbError) return NextResponse.json({ error: err.message }, { status: err.status });
-    throw err;
+    return apiError(err);
   }
 }

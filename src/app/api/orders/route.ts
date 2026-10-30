@@ -5,7 +5,7 @@ import { rateLimit } from "@/lib/auth/rate-limit";
 import { clientIp } from "@/lib/auth/server";
 
 export async function POST(req: Request) {
-  const limit = rateLimit(`order:${clientIp(req)}`, 10, 10 * 60 * 1000);
+  const limit = rateLimit(`order:${await clientIp(req)}`, 10, 10 * 60 * 1000);
   if (!limit.ok) return NextResponse.json({ error: "Demasiados pedidos seguidos. Inténtalo más tarde." }, { status: 429 });
 
   const body = await req.json().catch(() => null);
@@ -13,7 +13,9 @@ export async function POST(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: firstIssue(parsed.error) }, { status: 400 });
 
   try {
-    const order = await db().placeOrder(parsed.data);
+    // Pedidos de prueba identificados por el dominio reservado @spidermasks.test (tests automáticos).
+    const isTest = parsed.data.customer.email.toLowerCase().endsWith("@spidermasks.test");
+    const order = await db().placeOrder({ ...parsed.data, isTest });
     return NextResponse.json({ id: order.id, number: order.number }, { status: 201 });
   } catch (err) {
     if (err instanceof DbError) return NextResponse.json({ error: err.message }, { status: err.status });

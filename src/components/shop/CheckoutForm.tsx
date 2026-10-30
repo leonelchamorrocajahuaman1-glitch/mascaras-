@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, Loader2, Lock } from "lucide-react";
 import { useCart } from "@/lib/store/cart";
 import { useHydrated } from "@/lib/hooks/useMedia";
+import { useStoreSettings } from "@/lib/store/settings";
 import { CartLines, CartSummary } from "./CartDrawer";
 import { useCartSync } from "./useCartSync";
 import { TLink } from "../experience/RouteTransition";
@@ -24,6 +25,7 @@ export function CheckoutForm() {
   const hydrated = useHydrated();
   const router = useRouter();
   const { changed } = useCartSync();
+  const settings = useStoreSettings();
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
@@ -67,7 +69,7 @@ export function CheckoutForm() {
         <div role="note" className="flex gap-3 rounded-2xl border border-blood/40 bg-blood/10 p-5 text-sm leading-relaxed">
           <AlertTriangle size={18} className="mt-0.5 shrink-0 text-blood" />
           <p>
-            <strong className="font-semibold">Checkout de demostración.</strong> No hay una pasarela de pago integrada: no se solicitan ni se procesan datos de tarjeta. El pedido quedará registrado como <em>pendiente de pago</em> y podrás verlo en el panel de administración.
+            <strong className="font-semibold">Sin pago en línea.</strong> {settings.checkoutNotice} No se solicitan ni se procesan datos de tarjeta.
           </p>
         </div>
         {changed && <p role="status" className="text-sm text-blood">Tu carrito se actualizó con los precios y existencias actuales.</p>}
@@ -97,13 +99,18 @@ export function CheckoutForm() {
             {error}
           </p>
         )}
+        {!settings.ordersEnabled && (
+          <p role="alert" className="rounded-xl border border-blood bg-blood/15 px-4 py-3 text-sm">
+            La tienda no está aceptando pedidos en este momento. Inténtalo más tarde.
+          </p>
+        )}
         <button
           type="submit"
-          disabled={sending}
+          disabled={sending || !settings.ordersEnabled}
           className="flex h-14 w-full items-center justify-center gap-3 rounded-full bg-blood font-mono text-[11px] uppercase tracking-[0.3em] text-white transition hover:bg-ember disabled:opacity-60"
         >
           {sending ? <Loader2 size={16} className="animate-spin" /> : <Lock size={15} />}
-          {sending ? "Registrando pedido…" : "Registrar pedido (demo, sin pago)"}
+          {sending ? "Registrando pedido…" : "Registrar pedido (sin pago en línea)"}
         </button>
       </form>
       <aside className="h-fit space-y-6 border border-bone/10 p-6 lg:sticky lg:top-28">

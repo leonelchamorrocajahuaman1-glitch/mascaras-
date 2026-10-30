@@ -19,7 +19,7 @@ export default async function HomePage() {
       <Hero poster={heroImage("hero-poster.webp")} />
       <Collection items={items} />
       <LazyMount>
-        <MaskLab models={availableModels()} glbModels={labGlbModels(products)} shopSlugs={shopSlugsByModel(products)} />
+        <MaskLab models={availableModels()} glbModels={await labGlbModels(products)} shopSlugs={shopSlugsByModel(products)} />
       </LazyMount>
       <Details images={detailImages} />
       <ShopCta />

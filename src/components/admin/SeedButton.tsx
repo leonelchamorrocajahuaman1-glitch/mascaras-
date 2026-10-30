@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+/** Importa el catálogo inicial de la colección (no duplica productos existentes). */
 export function SeedButton() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -16,13 +17,13 @@ export function SeedButton() {
           setBusy(true);
           const res = await fetch("/api/admin/seed", { method: "POST" });
           const data = await res.json().catch(() => ({}));
-          setMsg(res.ok ? `${data.created} productos importados.` : data.error ?? "Error");
+          setMsg(res.ok ? `${data.created} productos importados.` : (data.error ?? "Error"));
           setBusy(false);
           router.refresh();
         }}
         className="rounded-full border border-bone/20 px-5 py-2.5 text-sm hover:border-blood disabled:opacity-50"
       >
-        {busy ? "Importando…" : "Importar catálogo de demostración"}
+        {busy ? "Importando…" : "Importar catálogo inicial"}
       </button>
       {msg && <span className="text-sm text-steel">{msg}</span>}
     </div>

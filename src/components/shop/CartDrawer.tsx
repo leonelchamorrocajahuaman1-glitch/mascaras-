@@ -7,7 +7,7 @@ import { gsap } from "@/lib/gsap";
 import { useExperience } from "@/lib/store/experience";
 import { cartTotals, useCart, type CartLine } from "@/lib/store/cart";
 import { formatMoney } from "@/lib/format";
-import { siteConfig } from "@/lib/config";
+import { useStoreSettings } from "@/lib/store/settings";
 import { useHydrated } from "@/lib/hooks/useMedia";
 import { MASK_BY_KEY } from "@/lib/masks";
 import type { MaskKey } from "@/lib/types";
@@ -29,6 +29,7 @@ export function CartLines({ compact = false }: { compact?: boolean }) {
   const lines = useCart((s) => s.lines);
   const setQuantity = useCart((s) => s.setQuantity);
   const remove = useCart((s) => s.remove);
+  const settings = useStoreSettings();
   return (
     <ul className="divide-y divide-bone/10">
       {lines.map((l) => (
@@ -48,7 +49,7 @@ export function CartLines({ compact = false }: { compact?: boolean }) {
               <QuantityStepper
                 size="sm"
                 value={l.quantity}
-                max={Math.min(l.maxStock, siteConfig.maxQuantityPerItem)}
+                max={Math.min(l.maxStock, settings.maxQuantityPerItem)}
                 onChange={(q) => setQuantity(l.variantId, q)}
                 label={`Cantidad de ${l.name}`}
               />
@@ -69,7 +70,8 @@ export function CartLines({ compact = false }: { compact?: boolean }) {
 
 export function CartSummary() {
   const lines = useCart((s) => s.lines);
-  const { subtotal, shipping, total } = cartTotals(lines);
+  const settings = useStoreSettings();
+  const { subtotal, shipping, total } = cartTotals(lines, settings);
   return (
     <dl className="space-y-2 font-mono text-xs uppercase tracking-[0.15em]">
       <div className="flex justify-between text-steel">
@@ -80,9 +82,9 @@ export function CartSummary() {
         <dt>Envío</dt>
         <dd className="tabular-nums text-bone">{shipping === 0 && subtotal > 0 ? "Gratis" : formatMoney(shipping)}</dd>
       </div>
-      {subtotal > 0 && subtotal < siteConfig.freeShippingFromCents && (
+      {subtotal > 0 && subtotal < settings.freeShippingFromCents && (
         <p className="pt-1 text-[10px] normal-case tracking-normal text-steel">
-          Envío gratis a partir de {formatMoney(siteConfig.freeShippingFromCents)}.
+          Envío gratis a partir de {formatMoney(settings.freeShippingFromCents)}.
         </p>
       )}
       <div className="flex justify-between border-t border-bone/10 pt-3 text-sm text-bone">

@@ -1,29 +1,19 @@
 import "server-only";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { inspectGltf, type GltfInspection } from "../../scripts/lib-gltf.mjs";
+import { inspectGltf } from "../../scripts/lib-gltf.mjs";
+import { db } from "./db";
+import type { ModelAsset } from "./types";
 
-/** Metadata opcional por archivo en public/models/models.json. */
-export interface ModelMeta {
-  name?: string;
-  author?: string;
-  sourceUrl?: string;
-  license?: string;
-  /** Rotación extra en grados (Y) si el modelo no mira hacia +Z. */
-  rotationY?: number;
-  /** Rotación extra en grados (X) si el modelo está tumbado. */
-  rotationX?: number;
-}
+/**
+ * Los modelos 3D se registran en la base de datos (tabla model_assets):
+ *  - Los archivos copiados a mano en public/models se detectan y registran automáticamente.
+ *  - Los subidos desde el panel se guardan en data/models (local) o Supabase Storage.
+ * La metadata (autor, origen, licencia, rotación) se edita en /admin/modelos-3d.
+ */
 
-export interface ModelInfo extends ModelMeta {
-  url: string;
-  file: string;
-  name: string;
-  ok: boolean;
-  inspection: GltfInspection;
-}
+const PUBLIC_DIR = path.join(process.cwd(), "public", "models");
 
-/** Datos mínimos que necesita el cliente para cargar un modelo. */
 export interface ClientModel {
   url: string;
   name: string;
@@ -34,62 +24,97 @@ export interface ClientModel {
   sourceUrl?: string;
 }
 
-const DIR = path.join(process.cwd(), "public", "models");
-const cache = new Map<string, { mtime: number; info: GltfInspection }>();
+interface LegacyMeta {
+  name?: string;
+  author?: string;
+  sourceUrl?: string;
+  license?: string;
+  rotationY?: number;
+  rotationX?: number;
+}
 
-function readMeta(): Record<string, ModelMeta> {
+function legacyMeta(): Record<string, LegacyMeta> {
   try {
-    return JSON.parse(readFileSync(path.join(DIR, "models.json"), "utf8"));
+    return JSON.parse(readFileSync(path.join(PUBLIC_DIR, "models.json"), "utf8"));
   } catch {
     return {};
   }
 }
 
-const prettify = (file: string) =>
+export const prettifyFileName = (file: string) =>
   file
     .replace(/\.(glb|gltf)$/i, "")
     .replace(/[-_]+/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-/** Todos los .glb/.gltf de public/models con su validación (cacheada por fecha de modificación). */
-export function listModels(): ModelInfo[] {
-  if (!existsSync(DIR)) return [];
-  const meta = readMeta();
-  return readdirSync(DIR)
-    .filter((f) => /\.(glb|gltf)$/i.test(f))
-    .sort()
-    .map((file) => {
-      const full = path.join(DIR, file);
-      const mtime = statSync(full).mtimeMs;
-      let hit = cache.get(full);
-      if (!hit || hit.mtime !== mtime) {
-        hit = { mtime, info: inspectGltf(full) };
-        cache.set(full, hit);
-      }
-      const m = meta[file] ?? {};
-      return { ...m, url: `/models/${encodeURIComponent(file)}`, file, name: m.name || prettify(file), ok: hit.info.ok, inspection: hit.info };
+const g = globalThis as unknown as { __smModelSync?: { at: number; sig: string } };
+
+/** Registra/actualiza en la base de datos los archivos presentes en public/models (con caché por firma de carpeta). */
+export async function syncPublicModels() {
+  if (!existsSync(PUBLIC_DIR)) return;
+  const files = readdirSync(PUBLIC_DIR).filter((f) => /\.(glb|gltf)$/i.test(f));
+  const sig = files.map((f) => `${f}:${statSync(path.join(PUBLIC_DIR, f)).mtimeMs}`).join("|");
+  if (g.__smModelSync?.sig === sig) return;
+  const meta = legacyMeta();
+  for (const file of files) {
+    const full = path.join(PUBLIC_DIR, file);
+    const r = inspectGltf(full);
+    const m = meta[file] ?? {};
+    await db().upsertModelAsset({
+      fileName: file,
+      url: `/models/${encodeURIComponent(file)}`,
+      source: "public",
+      name: m.name || prettifyFileName(file),
+      author: m.author ?? "",
+      sourceUrl: m.sourceUrl ?? "",
+      license: m.license ?? "",
+      rotationX: m.rotationX ?? 0,
+      rotationY: m.rotationY ?? 0,
+      sizeBytes: statSync(full).size,
+      valid: r.ok,
+      issues: r.issues,
+      warnings: r.warnings,
+      stats: r.stats,
     });
+  }
+  g.__smModelSync = { at: Date.now(), sig };
 }
 
-export function toClientModel(m: ModelInfo): ClientModel {
+/** ¿Sigue existiendo el archivo de un modelo? (los de public/models pueden borrarse a mano). */
+export function modelFileMissing(m: ModelAsset) {
+  if (m.source !== "public") return false;
+  return !existsSync(path.join(PUBLIC_DIR, decodeURIComponent(m.fileName)));
+}
+
+export async function listModelAssets() {
+  await syncPublicModels();
+  return db().listModelAssets();
+}
+
+export function toClientModel(m: ModelAsset): ClientModel {
   return {
     url: m.url,
     name: m.name,
-    rotationY: m.rotationY ?? 0,
-    rotationX: m.rotationX ?? 0,
-    author: m.author,
-    license: m.license,
-    sourceUrl: m.sourceUrl,
+    rotationY: m.rotationY,
+    rotationX: m.rotationX,
+    author: m.author || undefined,
+    license: m.license || undefined,
+    sourceUrl: m.sourceUrl || undefined,
   };
 }
 
-/** Modelo válido para una URL de producto (null si falta o está corrupto: se usará el modelo procedural). */
-export function resolveModel(url: string | null | undefined): ClientModel | null {
-  if (!url) return null;
-  const m = listModels().find((x) => x.url === url || `/models/${x.file}` === url);
-  return m && m.ok ? toClientModel(m) : null;
+/** Modelos válidos y presentes, indexados por URL. */
+export async function validModelMap() {
+  const list = (await listModelAssets()).filter((m) => m.valid && !modelFileMissing(m));
+  return new Map(list.map((m) => [m.url, toClientModel(m)]));
 }
 
-export function validModels() {
-  return listModels().filter((m) => m.ok).map(toClientModel);
+export async function validModels() {
+  return [...(await validModelMap()).values()];
+}
+
+/** Modelo listo para el visor (null si falta, no existe o es inválido). */
+export async function resolveModel(url: string | null | undefined) {
+  if (!url) return null;
+  return (await validModelMap()).get(url) ?? null;
 }

@@ -3,18 +3,18 @@ import { Box } from "lucide-react";
 import { ModelGallery, type GalleryItem } from "@/components/shop/ModelGallery";
 import { TLink } from "@/components/experience/RouteTransition";
 import { activeProducts } from "@/lib/catalog";
-import { listModels, resolveModel } from "@/lib/models";
+import { listModelAssets, validModelMap } from "@/lib/models";
 import { MASK_BY_KEY } from "@/lib/masks";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Galería 3D", description: "Catálogo con vista previa 3D interactiva de cada máscara." };
 
 export default async function Gallery3DPage() {
-  const products = await activeProducts();
+  const [products, models, files] = await Promise.all([activeProducts(), validModelMap(), listModelAssets()]);
   const items: GalleryItem[] = [];
   const pending: { slug: string; name: string }[] = [];
   for (const p of products) {
-    const model = resolveModel(p.modelUrl);
+    const model = p.modelUrl ? models.get(p.modelUrl) : undefined;
     if (!model) {
       pending.push({ slug: p.slug, name: p.name });
       continue;
@@ -29,7 +29,6 @@ export default async function Gallery3DPage() {
       model,
     });
   }
-  const files = listModels();
 
   return (
     <div className="min-h-screen pb-32 pt-32">
@@ -52,8 +51,8 @@ export default async function Gallery3DPage() {
           <p className="font-display text-4xl font-black uppercase">Aún no hay modelos 3D asignados</p>
           <p className="max-w-xl text-sm leading-relaxed text-steel">
             {files.length
-              ? `Hay ${files.length} archivo(s) en /public/models, pero ningún producto los usa todavía. Asígnalos desde el panel: Productos → editar → "Modelo 3D (GLB)".`
-              : "Copia tus archivos .glb en la carpeta public/models del proyecto y asígnalos a cada producto desde el panel de administración."}
+              ? `Hay ${files.length} modelo(s) registrados, pero ningún producto activo los usa todavía. Asígnalos desde el panel: Modelos 3D.`
+              : "Sube tus archivos .glb desde el panel de administración (Modelos 3D) o cópialos en public/models, y asígnalos a cada producto."}
           </p>
         </div>
       )}

@@ -11,9 +11,24 @@ const supabaseHost = (() => {
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  experimental: {
+    // El proxy (protección de /api/admin) almacena el cuerpo de la petición: permite subir modelos 3D de hasta 60 MB.
+    proxyClientMaxBodySize: "64mb",
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: supabaseHost ? [{ protocol: "https", hostname: supabaseHost }] : [],
+  },
+  // Rutas antiguas del panel → nuevas rutas en español.
+  async redirects() {
+    return [
+      { source: "/admin/products", destination: "/admin/productos", permanent: true },
+      { source: "/admin/products/new", destination: "/admin/productos/nuevo", permanent: true },
+      { source: "/admin/products/:id", destination: "/admin/productos/:id", permanent: true },
+      { source: "/admin/orders", destination: "/admin/pedidos", permanent: true },
+      { source: "/admin/orders/:id", destination: "/admin/pedidos/:id", permanent: true },
+      { source: "/admin/models", destination: "/admin/modelos-3d", permanent: true },
+    ];
   },
   async headers() {
     return [

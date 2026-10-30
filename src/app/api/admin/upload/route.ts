@@ -15,7 +15,7 @@ function sniff(buf: Buffer): { ext: string; mime: string } | null {
 }
 
 export async function POST(req: Request) {
-  const { error } = await requireAdmin(req);
+  const { error } = await requireAdmin(req, "products:write");
   if (error) return error;
 
   const form = await req.formData().catch(() => null);

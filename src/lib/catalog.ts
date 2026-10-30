@@ -32,8 +32,8 @@ export function shopSlugsByModel(products: Product[]) {
 }
 
 /** Modelos GLB válidos para el laboratorio, enlazados al producto que los usa. */
-export function labGlbModels(products: Product[]) {
-  return validModels().map((m) => ({ ...m, shopSlug: products.find((p) => p.modelUrl === m.url)?.slug }));
+export async function labGlbModels(products: Product[]) {
+  return (await validModels()).map((m) => ({ ...m, shopSlug: products.find((p) => p.modelUrl === m.url)?.slug }));
 }
 
 export async function activeProducts() {
