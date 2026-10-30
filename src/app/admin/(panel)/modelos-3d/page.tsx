@@ -21,7 +21,7 @@ export default async function Models3DPage() {
         direct={isSupabaseConfigured()}
         uploadBlocked={
           isReadOnlyDeployment()
-            ? "La web publicada está en modo de solo lectura: falta conectar Supabase. Vercel no puede guardar archivos y solo admite envíos de unos 4,5 MB, así que los modelos se suben directamente a Supabase Storage (hasta 50 MB por archivo en el plan gratuito). Añade NEXT_PUBLIC_SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en Vercel y vuelve a desplegar (ver docs/DESPLIEGUE-VERCEL.md)."
+            ? "Esta web publicada no tiene almacenamiento conectado (Vercel no guarda archivos y corta envíos de más de ~4,5 MB), así que no se puede subir desde aquí. Forma más fácil, sin instalar nada: en GitHub abre tu repositorio → Releases → Draft a new release → escribe una etiqueta (p. ej. modelos-1) → arrastra tus .glb (hasta 2 GB) → Publish release. En 2-4 minutos aparecerán aquí y en la tienda, asignados según public/models/models.json. Alternativa: conectar Supabase (docs/DESPLIEGUE-VERCEL.md)."
             : null
         }
       />

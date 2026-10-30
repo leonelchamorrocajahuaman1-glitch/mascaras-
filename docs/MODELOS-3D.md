@@ -76,3 +76,14 @@ En `public/models/models.json` cada archivo puede indicar a qué producto debe a
 3. Haz commit y push, o espera al siguiente despliegue de Vercel. Al abrir la tienda, cada modelo se asigna a su producto y aparece en la ficha (pestañas *Vista 3D / Foto*), en `/shop/3d` y en el 3D Mask Lab.
 
 GitHub rechaza archivos de más de 100 MB y Supabase Free limita cada archivo a 50 MB. Si pesan mucho, optimízalos primero con `gltf-transform`.
+
+## Subir modelos grandes sin Supabase (GitHub Releases)
+
+En la web publicada en Vercel sin Supabase, el panel no puede guardar archivos. Puedes subir modelos de cualquier tamaño (hasta 2 GB) desde el navegador:
+
+1. En GitHub, abre tu repositorio `mascaras-` → **Releases** (columna derecha) → **Draft a new release**.
+2. En **Choose a tag** escribe una etiqueta nueva, por ejemplo `modelos-1`, y pulsa **Create new tag**.
+3. Arrastra tus archivos `.glb` a la zona *Attach binaries* y espera a que terminen de subir.
+4. Pulsa **Publish release**.
+
+El flujo **Actions → Importar modelos 3D** descarga los archivos, los valida, los copia a `public/models` y los guarda en el repositorio. Después Vercel vuelve a publicar la web. Los archivos `spider-man.glb` y `spider-man_symbiote.glb` se asignan solos a *Classic Red* y *Black Symbiote*. Si algún archivo no es válido, el flujo lo rechaza y el registro (log) explica el motivo.

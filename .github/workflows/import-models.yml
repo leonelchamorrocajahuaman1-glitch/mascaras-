@@ -1,0 +1,54 @@
+# Sube modelos 3D grandes a la tienda SIN Supabase y sin programas:
+#   GitHub → Releases → "Draft a new release" → adjunta tus .glb (hasta 2 GB) → "Publish release".
+# Este flujo descarga los .glb del release, los valida, los copia a public/models y los sube al repositorio.
+# Vercel vuelve a publicar la web y cada modelo se asigna a su producto según public/models/models.json.
+name: Importar modelos 3D
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Etiqueta (tag) del release que contiene los .glb"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: import-models
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Descargar los modelos del release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          mkdir -p incoming
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "*.glb" --pattern "*.GLB" --pattern "*.gltf" --dir incoming || true
+          ls -la incoming
+      - name: Validar y copiar a public/models
+        run: node scripts/import-models.mjs incoming
+      - name: Comprobar todos los modelos
+        run: node scripts/check-models.mjs
+      - name: Guardar en el repositorio (Vercel vuelve a publicar)
+        env:
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/models
+          if git diff --cached --quiet; then echo "Los modelos ya estaban en el repositorio: nada que cambiar."; exit 0; fi
+          git commit -m "Importar modelos 3D del release $TAG"
+          git push
