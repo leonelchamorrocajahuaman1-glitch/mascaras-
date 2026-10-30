@@ -6,6 +6,7 @@ import { db } from "./db";
 import type { ModelAsset } from "./types";
 import manifest from "@/generated/public-manifest.json";
 import { HAS_PUBLIC_DIR } from "./assets";
+import { isReadOnlyDeployment } from "./db/env";
 
 /**
  * Los modelos 3D se registran en la base de datos (tabla model_assets):
@@ -56,6 +57,8 @@ const g = globalThis as unknown as { __smModelSync?: { at: number; sig: string }
 
 /** Registra/actualiza en la base de datos los archivos presentes en public/models (con caché por firma de carpeta). */
 export async function syncPublicModels() {
+  // En solo lectura los modelos ya se cargan en memoria desde el manifiesto (ver db/local.ts).
+  if (isReadOnlyDeployment()) return;
   if (!HAS_PUBLIC_DIR) return syncFromManifest();
   if (!existsSync(PUBLIC_DIR)) return;
   const files = readdirSync(PUBLIC_DIR).filter((f) => /\.(glb|gltf)$/i.test(f));

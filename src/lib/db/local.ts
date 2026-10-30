@@ -21,6 +21,7 @@ import type {
 } from "../types";
 import { DbError, type Repository } from "./types";
 import { isReadOnlyDeployment, READ_ONLY_MESSAGE } from "./env";
+import manifest from "@/generated/public-manifest.json";
 
 /**
  * Base de datos local en un archivo JSON (data/db.json).
@@ -99,6 +100,34 @@ function migrate(raw: Partial<DbShape> & { version?: number }): DbShape {
 
 const g2 = globalThis as unknown as { __smReadOnlyDb?: DbShape; __smDbInit?: Promise<void> };
 
+type ManifestModel = { sizeBytes: number; ok: boolean; issues: string[]; warnings: string[]; stats: ModelAsset["stats"] };
+type ManifestMeta = { name?: string; author?: string; sourceUrl?: string; license?: string; rotationX?: number; rotationY?: number; assignTo?: string[] };
+
+/**
+ * Solo lectura (Vercel sin Supabase): registra en memoria los modelos de public/models validados en el build
+ * y aplica las asignaciones de models.json, para que la tienda publicada los muestre sin poder escribir en disco.
+ */
+function seedPublicModels(db: DbShape) {
+  const models = manifest.models as Record<string, ManifestModel>;
+  const meta = ((manifest as { meta?: Record<string, ManifestMeta> }).meta ?? {}) as Record<string, ManifestMeta>;
+  for (const [url, r] of Object.entries(models)) {
+    const file = decodeURIComponent(url.replace(/^\/models\//, ""));
+    const m = meta[file] ?? {};
+    const assetUrl = `/models/${encodeURIComponent(file)}`;
+    db.models.push({
+      id: newId("mdl"), fileName: file, url: assetUrl, source: "public",
+      name: m.name || file.replace(/\.(glb|gltf)$/i, ""), author: m.author ?? "", sourceUrl: m.sourceUrl ?? "", license: m.license ?? "",
+      rotationX: m.rotationX ?? 0, rotationY: m.rotationY ?? 0, sizeBytes: r.sizeBytes, valid: r.ok, issues: r.issues, warnings: r.warnings, stats: r.stats,
+      createdAt: now(), updatedAt: now(),
+    });
+    if (!r.ok) continue;
+    for (const slug of m.assignTo ?? []) {
+      const p = db.products.find((x) => x.slug === slug);
+      if (p && !p.modelUrl) p.modelUrl = assetUrl;
+    }
+  }
+}
+
 /** Crea data/db.json una sola vez aunque lleguen varias peticiones a la vez en el primer arranque. */
 function ensureDbFile() {
   g2.__smDbInit ??= (async () => {
@@ -119,6 +148,7 @@ async function readDb(): Promise<DbShape> {
     // Solo lectura: catálogo inicial en memoria, pedidos desactivados (no se puede escribir en disco).
     if (!g2.__smReadOnlyDb) {
       g2.__smReadOnlyDb = fresh();
+      seedPublicModels(g2.__smReadOnlyDb);
       g2.__smReadOnlyDb.settings.ordersEnabled = false;
       g2.__smReadOnlyDb.settings.checkoutNotice = "La tienda está en modo de solo lectura mientras se configura la base de datos. No se pueden registrar pedidos todavía.";
     }
