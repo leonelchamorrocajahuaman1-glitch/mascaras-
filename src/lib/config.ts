@@ -6,6 +6,8 @@ export const siteConfig = {
     "Una experiencia digital dedicada al universo de las máscaras arácnidas: estética oscura, futurista y cinematográfica.",
   currency: "USD",
   locale: "es-ES",
+  /** Formato de precio: "en-US" muestra $149. */
+  moneyLocale: "en-US",
   /** Envío plano demostrativo, en céntimos. */
   shippingCents: 1200,
   /** Envío gratuito a partir de este subtotal (céntimos). */

@@ -29,9 +29,10 @@ export function ProductImage({
     );
   }
   const external = src.startsWith("http") || src.startsWith("/api/");
+  const isRender = src.includes("/images/renders/");
   return (
     <div className={`relative ${className ?? ""}`}>
-      <Image src={src} alt={alt} fill sizes={sizes} priority={priority} unoptimized={external} className={imgClassName ?? "object-cover"} />
+      <Image src={src} alt={alt} fill sizes={sizes} priority={priority} unoptimized={external} className={imgClassName ?? (isRender ? "object-contain p-[6%]" : "object-cover")} />
     </div>
   );
 }

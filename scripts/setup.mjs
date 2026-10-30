@@ -20,7 +20,7 @@ if (password.length < 10) {
 const email = "admin@spidermasks.local";
 const env = `# Generado por npm run setup — NO subas este archivo a git.
 ADMIN_EMAIL=${email}
-ADMIN_PASSWORD_HASH='${hashPassword(password)}'
+ADMIN_PASSWORD_HASH=${hashPassword(password)}
 SESSION_SECRET=${randomBytes(48).toString("base64url")}
 
 # Opcional: base de datos Supabase (si se dejan vacías se usa data/db.json)

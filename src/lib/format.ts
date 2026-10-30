@@ -1,6 +1,6 @@
 import { siteConfig } from "./config";
 
-const money = new Intl.NumberFormat(siteConfig.locale, {
+const money = new Intl.NumberFormat(siteConfig.moneyLocale, {
   style: "currency",
   currency: siteConfig.currency,
   minimumFractionDigits: 0,
