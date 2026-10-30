@@ -1,6 +1,6 @@
 import { useId } from "react";
 import type { MaskLook } from "@/lib/masks";
-import { EYE_CENTER, EYE_POINTS, WEB_CENTER } from "./eye";
+import { EYE_CENTER, EYE_DOTS, EYE_POINTS } from "./eye";
 
 /**
  * Ilustración vectorial de la máscara generada con las mismas proporciones que el modelo 3D.
@@ -26,62 +26,50 @@ function silhouette() {
   return pts.join(" ") + "Z";
 }
 
-function webPaths(spokes: number, ringSpacing: number) {
-  const c = [WEB_CENTER[0], WEB_CENTER[1], 1];
-  const n = Math.hypot(c[0], c[1], c[2]);
-  const cz = [c[0] / n, c[1] / n, c[2] / n];
-  const rx = [1, 0, 0];
-  const ry = [cz[1] * rx[2] - cz[2] * rx[1], cz[2] * rx[0] - cz[0] * rx[2], cz[0] * rx[1] - cz[1] * rx[0]].map((v) => -v);
-  const point = (th: number, ph: number) => {
-    const s = Math.sin(th);
-    const d = [0, 1, 2].map((k) => Math.cos(th) * cz[k] + s * (Math.cos(ph) * rx[k] + Math.sin(ph) * ry[k]));
-    return d;
-  };
+/** Malla de placas hexagonales (proyección plana para la ilustración) + cresta central. */
+function platePaths(density: number) {
+  const r = 70 / density;
+  const w = Math.sqrt(3) * r;
   const paths: string[] = [];
-  for (let i = 0; i < spokes; i++) {
-    const ph = (i / spokes) * Math.PI * 2;
-    const seg: string[] = [];
-    for (let th = 0.03; th < 1.7; th += 0.04) {
-      const d = point(th, ph);
-      if (d[2] < 0) break;
-      const [x, y] = toSvg(d[0], d[1]);
-      seg.push(`${seg.length ? "L" : "M"}${x.toFixed(2)} ${y.toFixed(2)}`);
+  for (let row = -1; row * 1.5 * r < 110; row++) {
+    for (let col = -1; col * w < 110; col++) {
+      const cx = col * w + (row % 2 ? w / 2 : 0);
+      const cy = row * 1.5 * r;
+      const pts = Array.from({ length: 6 }, (_, k) => {
+        const a = (Math.PI / 3) * k + Math.PI / 6;
+        return `${(cx + r * Math.cos(a)).toFixed(2)} ${(cy + r * Math.sin(a)).toFixed(2)}`;
+      });
+      paths.push(`M${pts.join(" L")}Z`);
     }
-    paths.push(seg.join(" "));
   }
-  for (let r = 1; r * ringSpacing < 1.7; r++) {
-    const seg: string[] = [];
-    for (let j = 0; j <= spokes * 8; j++) {
-      const ph = (j / (spokes * 8)) * Math.PI * 2;
-      const ds = Math.abs(((((ph * spokes) / (Math.PI * 2) + 0.5) % 1) + 1) % 1 - 0.5);
-      const th = (r - 0.34 * (2 * ds) ** 2) * ringSpacing;
-      const d = point(th, ph);
-      if (d[2] < 0) {
-        seg.push("");
-        continue;
-      }
-      const [x, y] = toSvg(d[0], d[1]);
-      const prevBlank = !seg.length || seg[seg.length - 1] === "";
-      seg.push(`${prevBlank ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`);
-    }
-    paths.push(seg.filter(Boolean).join(" "));
-  }
+  paths.push("M50 4 L50 30");
   return paths;
 }
 
+const scaled = (x: number, y: number, scale: number, mirror: boolean) => {
+  const ex = EYE_CENTER[0] + (x - EYE_CENTER[0]) * scale;
+  const ey = EYE_CENTER[1] + (y - EYE_CENTER[1]) * scale;
+  return toSvg(mirror ? -ex : ex, ey);
+};
+
+/** Ranura principal + ojos secundarios del visor original. */
 const eye = (mirror: boolean, scale: number) =>
   EYE_POINTS.map(([x, y], i) => {
-    const ex = EYE_CENTER[0] + (x - EYE_CENTER[0]) * scale;
-    const ey = EYE_CENTER[1] + (y - EYE_CENTER[1]) * scale;
-    const [sx, sy] = toSvg(mirror ? -ex : ex, ey);
+    const [sx, sy] = scaled(x, y, scale, mirror);
     return `${i ? "L" : "M"}${sx.toFixed(2)} ${sy.toFixed(2)}`;
-  }).join(" ") + "Z";
+  }).join(" ") +
+  "Z " +
+  EYE_DOTS.map(([x, y, r]) => {
+    const [cx, cy] = scaled(x, y, scale, mirror);
+    const rr = r * scale * 44 * 0.88;
+    return `M${(cx - rr).toFixed(2)} ${cy.toFixed(2)} a${rr.toFixed(2)} ${rr.toFixed(2)} 0 1 0 ${(2 * rr).toFixed(2)} 0 a${rr.toFixed(2)} ${rr.toFixed(2)} 0 1 0 ${(-2 * rr).toFixed(2)} 0Z`;
+  }).join(" ");
 
 const HEAD = silhouette();
 
 export function MaskArt({ look, className, glow = true }: { look: MaskLook; className?: string; glow?: boolean }) {
   const id = useId().replace(/:/g, "");
-  const web = webPaths(look.spokes, look.ringSpacing);
+  const web = platePaths(look.spokes);
   return (
     <svg viewBox="0 0 100 100" className={className} role="img" aria-label="Ilustración de la máscara">
       <defs>
@@ -110,7 +98,7 @@ export function MaskArt({ look, className, glow = true }: { look: MaskLook; clas
       </g>
       {[false, true].map((m) => (
         <g key={String(m)}>
-          <path d={eye(m, look.lensScale)} fill={look.frame} stroke={look.frame} strokeWidth="4.2" strokeLinejoin="round" />
+          <path d={eye(m, look.lensScale)} fill={look.frame} stroke={look.frame} strokeWidth="2.6" strokeLinejoin="round" />
           <path
             d={eye(m, look.lensScale)}
             fill={`url(#lens-${id})`}

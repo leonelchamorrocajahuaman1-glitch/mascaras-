@@ -187,7 +187,7 @@ export function Hero({ poster }: { poster?: string | null }) {
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blood" /> Online
             </span>
             <span className="hero-line block h-px w-16 origin-right bg-bone/30" />
-            <span>Web / 18 radios</span>
+            <span>Visor / 6 ojos</span>
           </div>
 
           <div className="absolute inset-x-[var(--gutter)] bottom-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">

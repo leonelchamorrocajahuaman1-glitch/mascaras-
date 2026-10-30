@@ -23,7 +23,7 @@ interface ProductRef {
 
 type ModelWithState = ModelAsset & { missing: boolean };
 
-function UploadPanel({ products, onDone }: { products: ProductRef[]; onDone: () => void }) {
+function UploadPanel({ products, onDone, direct }: { products: ProductRef[]; onDone: () => void; direct: boolean }) {
   const { toast } = useFeedback();
   const input = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -31,8 +31,57 @@ function UploadPanel({ products, onDone }: { products: ProductRef[]; onDone: () 
   const [issues, setIssues] = useState<string[]>([]);
   const [meta, setMeta] = useState({ name: "", author: "", sourceUrl: "", license: "", productId: "" });
 
+  /** Producción (Supabase): el navegador sube directamente a Storage con URLs firmadas; luego el servidor valida. */
+  const submitDirect = async () => {
+    setIssues([]);
+    setProgress(0);
+    try {
+      const prep = await adminFetch<{ folder: string; main: string; uploads: { name: string; signedUrl: string }[] }>("/api/admin/models/direct", {
+        method: "POST",
+        json: { action: "prepare", files: files.map((f) => ({ name: f.name, size: f.size })) },
+      });
+      const total = files.reduce((t, f) => t + f.size, 0);
+      let done = 0;
+      for (const up of prep.uploads) {
+        const file = files.find((f) => f.name === up.name)!;
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("PUT", up.signedUrl);
+          xhr.setRequestHeader("content-type", file.name.endsWith(".glb") ? "model/gltf-binary" : file.type || "application/octet-stream");
+          xhr.setRequestHeader("x-upsert", "false");
+          xhr.upload.onprogress = (e) => e.lengthComputable && setProgress(Math.min(99, Math.round(((done + e.loaded) / total) * 100)));
+          xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Supabase Storage respondió ${xhr.status} al subir ${file.name}.`)));
+          xhr.onerror = () => reject(new Error("No se pudo conectar con Supabase Storage."));
+          xhr.send(file);
+        });
+        done += file.size;
+      }
+      setProgress(100);
+      const res = await fetch("/api/admin/models/direct", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "complete", folder: prep.folder, main: prep.main, ...meta }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setIssues(data.issues ?? []);
+        throw new Error(data.error ?? `Error ${res.status} al validar el modelo.`);
+      }
+      toast(`Modelo "${data.model?.name}" subido y validado${meta.productId ? " y asignado al producto" : ""}.`);
+      setFiles([]);
+      setMeta({ name: "", author: "", sourceUrl: "", license: "", productId: "" });
+      if (input.current) input.current.value = "";
+      onDone();
+    } catch (e) {
+      toast((e as Error).message, "error");
+    } finally {
+      setProgress(null);
+    }
+  };
+
   const submit = () => {
     if (!files.length) return toast("Selecciona un archivo .glb o .gltf.", "error");
+    if (direct) return void submitDirect();
     const fd = new FormData();
     files.forEach((f) => fd.append("files", f));
     Object.entries(meta).forEach(([k, v]) => fd.append(k, v));
@@ -238,7 +287,7 @@ function ModelCard({ model, products, canWrite, onChange }: { model: ModelWithSt
   );
 }
 
-export function ModelsManager({ models, products, canWrite }: { models: ModelWithState[]; products: ProductRef[]; canWrite: boolean }) {
+export function ModelsManager({ models, products, canWrite, direct = false }: { models: ModelWithState[]; products: ProductRef[]; canWrite: boolean; direct?: boolean }) {
   const router = useRouter();
   const refresh = () => router.refresh();
   const valid = new Set(models.filter((m) => m.valid && !m.missing).map((m) => m.url));
@@ -249,7 +298,7 @@ export function ModelsManager({ models, products, canWrite }: { models: ModelWit
   return (
     <div className="space-y-6">
       <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
-        {canWrite ? <UploadPanel products={products} onDone={refresh} /> : <Card className="p-6 text-sm text-steel">Tu rol puede ver los modelos pero no subirlos ni asignarlos.</Card>}
+        {canWrite ? <UploadPanel products={products} onDone={refresh} direct={direct} /> : <Card className="p-6 text-sm text-steel">Tu rol puede ver los modelos pero no subirlos ni asignarlos.</Card>}
         <Card className="p-6">
           <h2 className="mb-4 font-display text-2xl font-black uppercase">Cobertura 3D</h2>
           <div className="mb-4 grid grid-cols-3 gap-3 text-center">

@@ -1,6 +1,6 @@
 import { Color, MeshPhysicalMaterial, type IUniform } from "three";
 import type { MaskLook } from "@/lib/masks";
-import { EYE_CENTER, EYE_POINTS, EYE_ROUND, FRAME_WIDTH, WEB_CENTER } from "./eye";
+import { EYE_CENTER, EYE_DOTS, EYE_POINTS, EYE_ROUND, FRAME_WIDTH, WEB_CENTER } from "./eye";
 
 const glslVec2 = (p: number[]) => `vec2(${p[0].toFixed(4)}, ${p[1].toFixed(4)})`;
 
@@ -50,7 +50,31 @@ float smEye(vec2 p, float scale, float squint) {
   vec2 q = vec2(abs(p.x), p.y);
   q = SM_EYE_C + (q - SM_EYE_C) / scale;
   q.y = SM_EYE_C.y + (q.y - SM_EYE_C.y) / max(1.0 - squint * 0.85, 0.04);
-  return smPoly(q) * scale - ${EYE_ROUND.toFixed(4)};
+  float d = smPoly(q) - ${EYE_ROUND.toFixed(4)};
+${EYE_DOTS.map(([x, y, r]) => `  d = min(d, length(q - vec2(${x.toFixed(4)}, ${y.toFixed(4)})) - ${r.toFixed(4)});`).join("\n")}
+  return d * scale;
+}
+
+vec3 smHash3(vec3 p) {
+  p = vec3(dot(p, vec3(127.1, 311.7, 74.7)), dot(p, vec3(269.5, 183.3, 246.1)), dot(p, vec3(113.5, 271.9, 124.6)));
+  return fract(sin(p) * 43758.5453123);
+}
+
+/** Ruido celular 3D: distancia a la celda más cercana (x) y a la segunda (y). */
+vec2 smWorley(vec3 x) {
+  vec3 i = floor(x);
+  vec3 f = fract(x);
+  float f1 = 8.0;
+  float f2 = 8.0;
+  for (int k = -1; k <= 1; k++)
+  for (int j = -1; j <= 1; j++)
+  for (int l = -1; l <= 1; l++) {
+    vec3 g = vec3(float(l), float(j), float(k));
+    vec3 r = g + smHash3(i + g) * 0.8 + 0.1 - f;
+    float d = dot(r, r);
+    if (d < f1) { f2 = f1; f1 = d; } else if (d < f2) { f2 = d; }
+  }
+  return vec2(sqrt(f1), sqrt(f2));
 }
 
 float smHash(vec3 p) {
@@ -90,22 +114,17 @@ const PATTERN = /* glsl */ `
   float smLens = (1.0 - smoothstep(-smAA, smAA, smLensD)) * smFront;
   float smFrame = (1.0 - smoothstep(${FRAME_WIDTH.toFixed(4)} - smAA, ${FRAME_WIDTH.toFixed(4)} + smAA, smOuter)) * smFront * (1.0 - smLens);
 
-  // Telaraña: radios y anillos combados entre radios
+  // Patrón original: placas celulares en relieve + cresta central
   vec3 smC = normalize(vec3(${WEB_CENTER[0].toFixed(3)}, ${WEB_CENTER[1].toFixed(3)}, 1.0));
-  vec3 smRx = normalize(cross(vec3(0.0, 1.0, 0.0), smC));
-  vec3 smRy = cross(smC, smRx);
   float smTh = acos(clamp(dot(smD, smC), -1.0, 1.0));
-  float smPh = atan(dot(smD, smRy), dot(smD, smRx));
-  float smS = smPh * uSpokes / 6.2831853;
-  float smDs = abs(fract(smS + 0.5) - 0.5);
-  float smSpoke = smDs * (6.2831853 / uSpokes) * sin(smTh);
-  float smT = smTh / uRingSpacing + 0.34 * (2.0 * smDs) * (2.0 * smDs);
-  float smRing = abs(fract(smT + 0.5) - 0.5) * uRingSpacing;
+  float smScale = uSpokes * 0.34;
+  vec2 smCell = smWorley(smD * smScale);
+  float smCellEdge = (smCell.y - smCell.x) * 0.5 / smScale;
+  float smEaa = fwidth(smCellEdge) * 0.75 + 1e-5;
   float smW = uWebWidth;
-  float smLine = max(
-    (1.0 - smoothstep(smW - smAA, smW + smAA, smSpoke)) * smoothstep(0.02, 0.05, smTh),
-    (1.0 - smoothstep(smW - smAA, smW + smAA, smRing)) * smoothstep(0.08, 0.12, smTh)
-  );
+  float smLine = 1.0 - smoothstep(smW - smEaa, smW + smEaa, smCellEdge);
+  float smCrest = (1.0 - smoothstep(smW * 1.4 - smAA, smW * 1.4 + smAA, abs(smD.x))) * smoothstep(0.32, 0.5, smD.y + smD.z * 0.15);
+  smLine = max(smLine, smCrest);
   smLine *= mix(1.0, smoothstep(${FRAME_WIDTH.toFixed(4)}, ${FRAME_WIDTH.toFixed(4)} + 0.014, smOuter), smFront);
 
   // Revelado progresivo desde el centro (animación de entrada)
@@ -118,8 +137,8 @@ const PATTERN = /* glsl */ `
   float smGrain2 = smNoise(vDir * 38.0);
 
   // Micro-perforado de la lente
-  vec2 smCell = fract(smP * 150.0) - 0.5;
-  float smDot = smoothstep(0.34, 0.2, length(smCell)) * (1.0 - smoothstep(0.002, 0.006, smAA));
+  vec2 smPerf = fract(smP * 150.0) - 0.5;
+  float smDot = smoothstep(0.34, 0.2, length(smPerf)) * (1.0 - smoothstep(0.002, 0.006, smAA));
   float smLensShade = 0.72 + 0.28 * smoothstep(0.0, -0.07, smLensD);
   float smRim = smoothstep(-0.035, 0.0, smLensD);
 
@@ -209,7 +228,7 @@ export function createMaskMaterial() {
       )
       .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n  totalEmissiveRadiance += smEm;");
   };
-  material.customProgramCacheKey = () => "spider-mask-v1";
+  material.customProgramCacheKey = () => "spider-mask-v2-original";
 
   return { material, uniforms };
 }

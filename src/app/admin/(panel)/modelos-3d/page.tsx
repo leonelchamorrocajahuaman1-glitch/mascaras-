@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db, isSupabaseConfigured } from "@/lib/db";
 import { requirePagePermission } from "@/lib/auth/server";
 import { can } from "@/lib/auth/permissions";
 import { listModelAssets, modelFileMissing } from "@/lib/models";
@@ -18,6 +18,7 @@ export default async function Models3DPage() {
         models={models.map((m) => ({ ...m, missing: modelFileMissing(m) }))}
         products={products.map((p) => ({ id: p.id, name: p.name, slug: p.slug, active: p.active, modelUrl: p.modelUrl }))}
         canWrite={can(session.role, "models:write")}
+        direct={isSupabaseConfigured()}
       />
     </>
   );

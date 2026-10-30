@@ -4,6 +4,8 @@ import path from "node:path";
 import { inspectGltf } from "../../scripts/lib-gltf.mjs";
 import { db } from "./db";
 import type { ModelAsset } from "./types";
+import manifest from "@/generated/public-manifest.json";
+import { HAS_PUBLIC_DIR } from "./assets";
 
 /**
  * Los modelos 3D se registran en la base de datos (tabla model_assets):
@@ -35,6 +37,7 @@ interface LegacyMeta {
 
 function legacyMeta(): Record<string, LegacyMeta> {
   try {
+    if (!HAS_PUBLIC_DIR) return {};
     return JSON.parse(readFileSync(path.join(PUBLIC_DIR, "models.json"), "utf8"));
   } catch {
     return {};
@@ -51,6 +54,7 @@ const g = globalThis as unknown as { __smModelSync?: { at: number; sig: string }
 
 /** Registra/actualiza en la base de datos los archivos presentes en public/models (con caché por firma de carpeta). */
 export async function syncPublicModels() {
+  if (!HAS_PUBLIC_DIR) return syncFromManifest();
   if (!existsSync(PUBLIC_DIR)) return;
   const files = readdirSync(PUBLIC_DIR).filter((f) => /\.(glb|gltf)$/i.test(f));
   const sig = files.map((f) => `${f}:${statSync(path.join(PUBLIC_DIR, f)).mtimeMs}`).join("|");
@@ -80,9 +84,39 @@ export async function syncPublicModels() {
   g.__smModelSync = { at: Date.now(), sig };
 }
 
+/** Producción sin /public en disco (Vercel): registra los modelos validados durante el build. */
+async function syncFromManifest() {
+  const entries = Object.entries(manifest.models as Record<string, { sizeBytes: number; ok: boolean; issues: string[]; warnings: string[]; stats: ModelAsset["stats"] }>);
+  const sig = entries.map(([k, v]) => `${k}:${v.sizeBytes}`).join("|");
+  if (g.__smModelSync?.sig === sig) return;
+  const meta = legacyMeta();
+  for (const [url, r] of entries) {
+    const file = decodeURIComponent(url.replace(/^\/models\//, ""));
+    const m = meta[file] ?? {};
+    await db().upsertModelAsset({
+      fileName: file,
+      url: `/models/${encodeURIComponent(file)}`,
+      source: "public",
+      name: m.name || prettifyFileName(file),
+      author: m.author ?? "",
+      sourceUrl: m.sourceUrl ?? "",
+      license: m.license ?? "",
+      rotationX: m.rotationX ?? 0,
+      rotationY: m.rotationY ?? 0,
+      sizeBytes: r.sizeBytes,
+      valid: r.ok,
+      issues: r.issues,
+      warnings: r.warnings,
+      stats: r.stats,
+    });
+  }
+  g.__smModelSync = { at: Date.now(), sig };
+}
+
 /** ¿Sigue existiendo el archivo de un modelo? (los de public/models pueden borrarse a mano). */
 export function modelFileMissing(m: ModelAsset) {
   if (m.source !== "public") return false;
+  if (!HAS_PUBLIC_DIR) return !(`/models/${encodeURIComponent(m.fileName)}` in manifest.models) && !(`/models/${m.fileName}` in manifest.models);
   return !existsSync(path.join(PUBLIC_DIR, decodeURIComponent(m.fileName)));
 }
 

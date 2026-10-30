@@ -16,6 +16,7 @@ next-env.d.ts
 data/db.json
 data/db.json.tmp
 data/uploads/
+data/models/
 
 # misc
 .DS_Store

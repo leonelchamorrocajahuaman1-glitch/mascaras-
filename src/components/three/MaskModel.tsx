@@ -8,7 +8,7 @@ import { getMaskGeometry } from "./maskGeometry";
 import { createMaskMaterial, lerpLook, type MaskUniforms } from "./maskMaterial";
 
 export interface MaskDrive {
-  /** 0 → 1: la telaraña se dibuja desde el centro del rostro. */
+  /** 0 → 1: las placas se encienden desde el centro del rostro. */
   reveal: number;
   /** 0 → 1: encendido de las lentes. */
   lensPower: number;

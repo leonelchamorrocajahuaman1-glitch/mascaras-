@@ -8,6 +8,10 @@ import { DbError, type Repository } from "./types";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 let client: SupabaseClient | null = null;
+/** Cliente con la service role: SOLO en el servidor (este módulo importa "server-only"). */
+export function supabaseAdmin() {
+  return sb();
+}
 function sb() {
   if (!client) {
     client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {

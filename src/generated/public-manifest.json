@@ -1,0 +1,12 @@
+{
+  "files": [
+    "/images/renders/black-symbiote-original.webp",
+    "/images/renders/classic-red-original.webp",
+    "/images/renders/custom-series-original.webp",
+    "/images/renders/future-vision-original.webp",
+    "/images/renders/iron-edition-original.webp",
+    "/images/renders/stealth-edition-original.webp",
+    "/models/models.example.json"
+  ],
+  "models": {}
+}

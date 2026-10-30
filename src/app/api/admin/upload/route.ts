@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth/server";
 
-const MAX_BYTES = 5 * 1024 * 1024;
+// Vercel limita el cuerpo de una petición a ~4,5 MB: en producción las fotos deben pesar menos de 4 MB.
+const MAX_BYTES = (process.env.VERCEL ? 4 : 5) * 1024 * 1024;
 
 /** Detecta el tipo real por la firma del archivo (no confía en el nombre ni en el MIME enviado). */
 function sniff(buf: Buffer): { ext: string; mime: string } | null {
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) return NextResponse.json({ error: "No se recibió ningún archivo." }, { status: 400 });
-  if (file.size > MAX_BYTES) return NextResponse.json({ error: "La imagen supera 5 MB." }, { status: 413 });
+  if (file.size > MAX_BYTES) return NextResponse.json({ error: `La imagen supera ${MAX_BYTES / 1048576} MB. Comprímela (por ejemplo a WebP) y vuelve a subirla.` }, { status: 413 });
 
   const buf = Buffer.from(await file.arrayBuffer());
   const type = sniff(buf);

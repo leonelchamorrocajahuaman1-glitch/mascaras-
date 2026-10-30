@@ -48,7 +48,7 @@ export function Footer() {
       </div>
       <div className="relative flex flex-col gap-2 border-t border-bone/10 px-[var(--gutter)] py-6 font-mono text-[10px] uppercase tracking-[0.2em] text-steel md:flex-row md:justify-between">
         <span>© {new Date().getFullYear()} Spider Masks — Proyecto de demostración. Precios ficticios.</span>
-        <span>Spider-Man es una marca de Marvel. Sitio sin afiliación oficial.</span>
+        <span>Diseños originales SPIDER MASKS. Sin afiliación con Marvel ni con personajes con licencia.</span>
       </div>
     </footer>
   );

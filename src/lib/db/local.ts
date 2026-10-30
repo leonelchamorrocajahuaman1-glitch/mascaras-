@@ -20,6 +20,7 @@ import type {
   StoreSettings,
 } from "../types";
 import { DbError, type Repository } from "./types";
+import { isReadOnlyDeployment, READ_ONLY_MESSAGE } from "./env";
 
 /**
  * Base de datos local en un archivo JSON (data/db.json).
@@ -96,7 +97,18 @@ function migrate(raw: Partial<DbShape> & { version?: number }): DbShape {
   return db;
 }
 
+const g2 = globalThis as unknown as { __smReadOnlyDb?: DbShape };
+
 async function readDb(): Promise<DbShape> {
+  if (isReadOnlyDeployment()) {
+    // Solo lectura: catálogo inicial en memoria, pedidos desactivados (no se puede escribir en disco).
+    if (!g2.__smReadOnlyDb) {
+      g2.__smReadOnlyDb = fresh();
+      g2.__smReadOnlyDb.settings.ordersEnabled = false;
+      g2.__smReadOnlyDb.settings.checkoutNotice = "La tienda está en modo de solo lectura mientras se configura la base de datos. No se pueden registrar pedidos todavía.";
+    }
+    return structuredClone(g2.__smReadOnlyDb);
+  }
   try {
     return migrate(JSON.parse(await fs.readFile(DB_FILE, "utf8")));
   } catch (err) {
@@ -108,6 +120,7 @@ async function readDb(): Promise<DbShape> {
 }
 
 async function writeDb(db: DbShape) {
+  if (isReadOnlyDeployment()) throw new DbError(READ_ONLY_MESSAGE, 503);
   await fs.mkdir(DATA_DIR, { recursive: true });
   const tmp = `${DB_FILE}.tmp`;
   const body = JSON.stringify(db, null, 2);
@@ -535,6 +548,7 @@ export const localRepository: Repository = {
     });
   },
   async saveModelFiles(files, mainFile) {
+    if (isReadOnlyDeployment()) throw new DbError(READ_ONLY_MESSAGE, 503);
     const folder = `${Date.now().toString(36)}-${randomBytes(5).toString("hex")}`;
     const dir = path.join(MODEL_UPLOAD_DIR, folder);
     await fs.mkdir(dir, { recursive: true });
@@ -590,6 +604,7 @@ export const localRepository: Repository = {
   },
 
   async saveImage(data, ext) {
+    if (isReadOnlyDeployment()) throw new DbError(READ_ONLY_MESSAGE, 503);
     await fs.mkdir(UPLOAD_DIR, { recursive: true });
     const name = `${Date.now().toString(36)}-${randomBytes(8).toString("hex")}.${ext}`;
     await fs.writeFile(path.join(UPLOAD_DIR, name), data);

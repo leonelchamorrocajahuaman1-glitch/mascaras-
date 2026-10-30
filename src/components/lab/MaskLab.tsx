@@ -27,7 +27,7 @@ export interface LabGlbModel {
   shopSlug?: string;
 }
 
-const CHANNEL_LABEL: Record<MaskChannel, string> = { base: "Base", web: "Telaraña", lens: "Lentes", glow: "Brillo de la red" };
+const CHANNEL_LABEL: Record<MaskChannel, string> = { base: "Base", web: "Placas", lens: "Visor", glow: "Brillo de las placas" };
 const CHANNEL_FIELD: Record<MaskChannel, keyof MaskLook> = { base: "base", web: "web", lens: "lens", glow: "glow" };
 
 function Toggle({ on, onClick, icon, label }: { on: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {

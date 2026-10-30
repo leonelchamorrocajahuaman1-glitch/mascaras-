@@ -2,12 +2,12 @@ import type { MaskKey } from "@/lib/types";
 
 /** Capítulos de "The Details" (compartidos entre servidor y cliente). */
 export const DETAIL_CHAPTERS = [
-  { file: "eyes.webp", title: "Los ojos", kicker: "Primer plano", text: "Lentes de contorno grueso y superficie micro-perforada. El punto exacto en el que la máscara te devuelve la mirada.", tags: ["Marco en relieve", "Lente blanca", "Micro-perforado"] },
-  { file: "web-pattern.webp", title: "La red", kicker: "Patrón de telaraña", text: "Radios que nacen entre los ojos y anillos que se comban entre ellos, envolviendo el cráneo sin interrupciones.", tags: ["18 radios", "Anillos combados", "Relieve oscuro"] },
+  { file: "eyes.webp", title: "Los ojos", kicker: "Primer plano", text: "Seis ojos: dos ranuras afiladas y cuatro lentes secundarias, con superficie micro-perforada. El punto exacto en el que la máscara te devuelve la mirada.", tags: ["Visor de 6 ojos", "Marco en relieve", "Micro-perforado"] },
+  { file: "web-pattern.webp", title: "Las placas", kicker: "Patrón celular", text: "Una malla de placas irregulares en relieve recorre todo el cráneo, rematada por una cresta central que nace en la frente.", tags: ["Placas celulares", "Cresta central", "Relieve oscuro"] },
   { file: "textures.webp", title: "Texturas", kicker: "Superficie", text: "Grano de tejido, líneas elevadas y sombras que solo aparecen cuando la luz roza la superficie en ángulo.", tags: ["Grano fino", "Mate profundo", "Relieve"] },
   { file: "materials.webp", title: "Materiales", kicker: "Acabados", text: "Del tejido mate al metal rojo con nervaduras plateadas: cada edición responde a la luz de una forma distinta.", tags: ["Metalizado", "Plata", "Rojo profundo"] },
-  { file: "reflections.webp", title: "Reflejos", kicker: "Brillo", text: "Lacado negro de brillo líquido. Los reflejos dibujan la forma del rostro antes que la propia telaraña.", tags: ["Clearcoat", "Negro lacado", "Luz de contorno"] },
-  { file: "tech.webp", title: "Tecnología", kicker: "Future Vision", text: "Líneas de luz que laten como un circuito y lentes que se entrecierran. La red, encendida.", tags: ["Red emisiva", "Lentes activas", "Pulso"] },
+  { file: "reflections.webp", title: "Reflejos", kicker: "Brillo", text: "Lacado negro de brillo líquido. Los reflejos dibujan la forma del rostro antes que las propias placas.", tags: ["Clearcoat", "Negro lacado", "Luz de contorno"] },
+  { file: "tech.webp", title: "Tecnología", kicker: "Future Vision", text: "Placas que laten como un circuito y un visor que se entrecierra. La malla, encendida.", tags: ["Placas emisivas", "Lentes activas", "Pulso"] },
 ];
 
 export interface DetailShot {

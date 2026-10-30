@@ -2,7 +2,10 @@
 
 Experiencia web cinematográfica dedicada a las máscaras arácnidas: máscara 3D en tiempo real como protagonista, animaciones ligadas al scroll, laboratorio 3D interactivo, tienda funcional con carrito y pedidos, y panel de administración.
 
-> Proyecto de demostración. Los precios son ficticios y **no hay pasarela de pago**: los pedidos se registran como "pendiente de pago" sin ningún cobro. Spider-Man es una marca de Marvel; para vender productos con esa marca se necesita licencia.
+> Los precios son ficticios y **no hay pasarela de pago**: los pedidos se registran como "No pagado" sin ningún cobro.
+> La máscara 3D, las fotos de producto, la ilustración y el logotipo son un **diseño original de SPIDER MASKS** (visor de seis ojos y placas celulares). No reproducen personajes con licencia. Si subes modelos o fotos de terceros, comprueba que tienes derecho a usarlos, sobre todo para venderlos.
+
+**Publicar en Internet:** guía paso a paso (Vercel + Supabase) en **[`docs/DESPLIEGUE-VERCEL.md`](docs/DESPLIEGUE-VERCEL.md)**.
 
 ## Stack
 
@@ -48,7 +51,7 @@ npm run build
 npm run start
 ```
 
-Otros comandos: `npm run typecheck`, `npm run models:check` (valida los GLB de `public/models`), `npm run db:reset` (vuelve al catálogo inicial), `npm run admin:hash -- "nueva-clave"` (genera un nuevo hash de contraseña).
+Otros comandos: `npm run typecheck`, `npm run models:check` (valida los GLB de `public/models`), `npm run env:production` (variables para Vercel), `npm run db:migrate-to-supabase` (copia el catálogo local a Supabase, con simulación previa), `npm run db:reset` (vuelve al catálogo inicial), `npm run admin:hash -- "nueva-clave"` (genera un nuevo hash de contraseña).
 
 ## Qué incluye
 
@@ -104,7 +107,7 @@ Tienda y panel comparten siempre el mismo repositorio de datos (`src/lib/db`): p
 
 Las imágenes definitivas se generan con ChatGPT. **Todavía no se ha generado ninguna**: la lista completa con sección, dimensiones, características y el prompt exacto de cada una está en **[`docs/PROMPTS-IMAGENES.md`](docs/PROMPTS-IMAGENES.md)**.
 
-Mientras tanto, la web usa **renders reales del modelo 3D** (`public/images/renders/`, generados con la herramienta `/studio`, disponible solo en desarrollo). Cuando copies una imagen con el nombre indicado, sustituye al render automáticamente.
+Mientras tanto, la web usa **renders reales del modelo 3D original** (`public/images/renders/*-original.webp`, generados con la herramienta `/studio`, disponible solo en desarrollo). Cuando copies una imagen con el nombre indicado, sustituye al render automáticamente.
 
 ## Modelos 3D
 

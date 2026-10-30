@@ -7,7 +7,7 @@ export interface MaskLook {
   web: string;
   lens: string;
   frame: string;
-  /** Color emisivo de las líneas de telaraña (negro = sin brillo). */
+  /** Color emisivo de las líneas de las placas (negro = sin brillo). */
   glow: string;
   glowIntensity: number;
   lensGlow: string;
@@ -16,9 +16,9 @@ export interface MaskLook {
   roughness: number;
   clearcoat: number;
   sheen: number;
-  /** Número de radios de la telaraña. */
+  /** Densidad del patrón de placas celulares. */
   spokes: number;
-  /** Separación angular entre anillos de la telaraña. */
+  /** Reservado (compatibilidad con looks anteriores). */
   ringSpacing: number;
   webWidth: number;
   /** Escala de las lentes (1 = tamaño clásico). */
@@ -67,9 +67,9 @@ export const MASKS: MaskDefinition[] = [
     key: "classic-red",
     code: "SM—01",
     name: "Classic Red",
-    tagline: "El origen de la leyenda.",
+    tagline: "El rojo original de la casa.",
     description:
-      "Rojo profundo, telaraña en relieve oscuro y lentes blancas de contorno grueso. La silueta que todos reconocen, reinterpretada con acabado de estudio.",
+      "Rojo profundo, placas en relieve oscuro y visor de seis ojos con ranuras afiladas. La pieza que define el estilo SPIDER MASKS.",
     accent: "#e1121f",
     look: { ...base, base: "#a30f19", web: "#14080a", lens: "#f3f3f1", frame: "#070707" },
     customizable: ["base", "web"],
@@ -84,7 +84,7 @@ export const MASKS: MaskDefinition[] = [
     name: "Black Symbiote",
     tagline: "Oscuridad líquida.",
     description:
-      "Negro lacado de brillo profundo, lentes amplias y una telaraña casi invisible que solo aparece cuando la luz la roza.",
+      "Negro lacado de brillo profundo, visor ampliado y unas placas casi invisibles que solo aparecen cuando la luz las roza.",
     accent: "#f2f2f2",
     look: {
       ...base,
@@ -161,7 +161,7 @@ export const MASKS: MaskDefinition[] = [
     name: "Stealth Edition",
     tagline: "Invisible hasta que es tarde.",
     description:
-      "Negro mate absoluto, telaraña en gris carbón y lentes ahumadas entrecerradas con un filo de luz roja.",
+      "Negro mate absoluto, placas en gris carbón y ranuras ahumadas entrecerradas con un filo de luz roja.",
     accent: "#8b8f96",
     look: {
       ...base,
@@ -186,7 +186,7 @@ export const MASKS: MaskDefinition[] = [
     name: "Custom Series",
     tagline: "Tu máscara, tus reglas.",
     description:
-      "Base, telaraña y lentes configurables. Diseña tu combinación en el 3D Mask Lab y llévala a la tienda.",
+      "Base, placas y lentes configurables. Diseña tu combinación en el 3D Mask Lab y llévala a la tienda.",
     accent: "#ffffff",
     look: { ...base, base: "#e9e9ea", web: "#c4101c", lens: "#101013", frame: "#c4101c", roughness: 0.45, sheen: 0.3 },
     customizable: ["base", "web", "lens"],
