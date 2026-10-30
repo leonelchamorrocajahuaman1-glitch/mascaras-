@@ -79,6 +79,7 @@ body {
   100% { transform: translate(0, 0); }
 }
 
+@layer components {
 .text-outline {
   color: transparent;
   -webkit-text-stroke: 1px rgba(243, 243, 241, 0.55);
@@ -117,6 +118,7 @@ body {
 }
 .scrollbar-none::-webkit-scrollbar {
   display: none;
+}
 }
 
 @media (prefers-reduced-motion: reduce) {

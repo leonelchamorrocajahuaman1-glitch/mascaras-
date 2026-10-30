@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { Canvas, type CanvasProps } from "@react-three/fiber";
 import { ACESFilmicToneMapping, SRGBColorSpace } from "three";
 import { useWebGL } from "@/lib/hooks/useMedia";
+import { useExperience } from "@/lib/store/experience";
 
 interface Props extends Omit<CanvasProps, "children"> {
   children: React.ReactNode;
@@ -19,6 +20,11 @@ export function SceneCanvas({ children, fallback, className, pauseOffscreen = tr
   const wrap = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
   const [failed, setFailed] = useState(false);
+
+  // Sin WebGL no hay escena que esperar: el preloader puede abrir ya.
+  useEffect(() => {
+    if (webgl === false || failed) useExperience.getState().setSceneReady();
+  }, [webgl, failed]);
 
   useEffect(() => {
     if (!pauseOffscreen || !wrap.current) return;

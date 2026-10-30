@@ -6,7 +6,7 @@ import { ShopCta } from "@/components/home/ShopCta";
 import { MaskLab } from "@/components/lab/MaskLab";
 import { LazyMount } from "@/components/experience/LazyMount";
 import { activeProducts, shopSlugsByModel, toShowcase } from "@/lib/catalog";
-import { availableModels, detailImage } from "@/lib/assets";
+import { availableModels, detailImage, heroImage } from "@/lib/assets";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,7 @@ export default async function HomePage() {
   const detailImages = Object.fromEntries(DETAIL_CHAPTERS.map((c) => [c.file, detailImage(c.file)]));
   return (
     <>
-      <Hero />
+      <Hero poster={heroImage("hero-poster.webp")} />
       <Collection items={items} />
       <LazyMount>
         <MaskLab models={availableModels()} shopSlugs={shopSlugsByModel(products)} />

@@ -53,3 +53,7 @@ export function heroImage(name: string) {
 export function detailImage(name: string) {
   return firstAvailable(`/images/details/${name}`);
 }
+
+export function backgroundImage(name: string) {
+  return firstAvailable(`/images/backgrounds/${name}`);
+}

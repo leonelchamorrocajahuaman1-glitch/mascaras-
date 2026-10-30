@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { ArrowDownRight } from "lucide-react";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { useExperience } from "@/lib/store/experience";
@@ -19,7 +20,7 @@ const HeroScene = dynamic(() => import("../three/HeroScene").then((m) => m.HeroS
 
 const MANIFESTO = "Cada héroe necesita un rostro. Cada rostro esconde una historia. Nosotros fabricamos lo que hay delante.";
 
-export function Hero() {
+export function Hero({ poster }: { poster?: string | null }) {
   const root = useRef<HTMLElement>(null);
   const drive = useRef<HeroDrive>({ reveal: 0, lensPower: 0, blink: 0, scroll: 0, intro: 0, pointerX: 0, pointerY: 0 });
   const introDone = useExperience((s) => s.introDone);
@@ -159,9 +160,13 @@ export function Hero() {
           camera={{ position: [0, 0, 4.7], fov: 30 }}
           dpr={tier === "high" ? [1, 1.75] : [1, 1.25]}
           fallback={
-            <div className="flex h-full items-center justify-center">
-              <MaskArt look={look} className="h-[62vmin] w-[62vmin]" />
-            </div>
+            poster ? (
+              <Image src={poster} alt="Máscara SPIDER MASKS bajo luz roja" fill priority sizes="100vw" className="object-cover object-center" />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <MaskArt look={look} className="h-[62vmin] w-[62vmin]" />
+              </div>
+            )
           }
         >
           <HeroScene drive={drive} detail={tier} />

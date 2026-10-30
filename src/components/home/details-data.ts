@@ -22,7 +22,7 @@ export interface DetailShot {
 export const DETAIL_SHOTS: DetailShot[] = [
   { model: "classic-red", cam: [0.42, 0.25, 1.25], target: [0.24, 0.18, 0.7], rotY: -0.2 },
   { model: "classic-red", cam: [-0.1, 1.15, 2.1], target: [0, 0.45, 0.2], rotY: 0.35 },
-  { model: "stealth-edition", cam: [0.9, -0.2, 1.5], target: [0.35, -0.25, 0.5], rotY: -0.5 },
+  { model: "classic-red", cam: [0.95, -0.25, 1.45], target: [0.35, -0.3, 0.5], rotY: -0.55 },
   { model: "iron-edition", cam: [1.6, 0.35, 3.1], target: [0, 0.05, 0], rotY: -0.45 },
   { model: "black-symbiote", cam: [-1.1, 0.4, 2.6], target: [0, 0.1, 0], rotY: 0.4 },
   { model: "future-vision", cam: [0, 0.1, 3.6], target: [0, 0.05, 0], rotY: 0.15, squint: 0.35 },

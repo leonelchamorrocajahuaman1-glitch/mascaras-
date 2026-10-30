@@ -6,11 +6,16 @@ import "@fontsource-variable/space-grotesk";
 import "@fontsource-variable/jetbrains-mono";
 import "./globals.css";
 import { siteConfig } from "@/lib/config";
+import { heroImage } from "@/lib/assets";
 
-export const metadata: Metadata = {
-  title: { default: `${siteConfig.name} — Behind the mask`, template: `%s · ${siteConfig.name}` },
-  description: siteConfig.description,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const og = heroImage("og-image.jpg");
+  return {
+    title: { default: `${siteConfig.name} — Behind the mask`, template: `%s · ${siteConfig.name}` },
+    description: siteConfig.description,
+    openGraph: { title: siteConfig.name, description: siteConfig.description, images: og ? [{ url: og, width: 1200, height: 630 }] : [] },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#050506",

@@ -102,6 +102,10 @@ export function CartDrawer() {
   const backdrop = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (panel.current) gsap.set(panel.current, { xPercent: 100 });
+  }, []);
+
+  useEffect(() => {
     if (!panel.current || !backdrop.current) return;
     if (open) {
       getLenis()?.stop();
@@ -138,7 +142,7 @@ export function CartDrawer() {
         aria-modal="true"
         aria-label="Carrito"
         inert={!open}
-        className="invisible fixed bottom-0 right-0 top-0 z-[71] flex w-full max-w-md translate-x-full flex-col border-l border-bone/10 bg-ink"
+        className="invisible fixed bottom-0 right-0 top-0 z-[71] flex w-full max-w-md flex-col border-l border-bone/10 bg-ink"
         data-lenis-prevent
       >
         <div className="flex items-center justify-between border-b border-bone/10 px-6 py-5">

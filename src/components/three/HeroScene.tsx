@@ -29,7 +29,7 @@ export function HeroScene({ drive, detail }: { drive: React.RefObject<HeroDrive>
   useEffect(() => {
     // En pantallas estrechas se aleja la cámara para que la máscara quepa.
     const aspect = size.width / size.height;
-    camera.position.z = aspect < 0.8 ? 6.8 : aspect < 1.2 ? 5.8 : 5.1;
+    camera.position.z = aspect < 0.8 ? 8.4 : aspect < 1.2 ? 6.2 : 5.1;
     camera.updateProjectionMatrix();
   }, [size, camera]);
 

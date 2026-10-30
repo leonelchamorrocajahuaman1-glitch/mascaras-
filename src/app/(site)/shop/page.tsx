@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import { Catalog } from "@/components/shop/Catalog";
 import type { CatalogItem } from "@/components/shop/types";
 import { activeProducts } from "@/lib/catalog";
-import { productImage } from "@/lib/assets";
+import Image from "next/image";
+import { backgroundImage, productImage } from "@/lib/assets";
 import { MASK_BY_KEY } from "@/lib/masks";
 
 export const dynamic = "force-dynamic";
@@ -28,15 +29,22 @@ export default async function ShopPage() {
     createdAt: p.createdAt,
   }));
 
+  const backdrop = backgroundImage("store-backdrop.webp");
   return (
     <div className="min-h-screen pt-32">
       <header className="relative overflow-hidden px-[var(--gutter)] pb-14">
+        {backdrop && (
+          <div aria-hidden className="absolute inset-0 -top-32">
+            <Image src={backdrop} alt="" fill sizes="100vw" className="object-cover opacity-40" />
+            <div className="absolute inset-0 bg-gradient-to-b from-ink/40 via-ink/60 to-ink" />
+          </div>
+        )}
         <div aria-hidden className="pointer-events-none absolute -right-[10vw] -top-[20vw] h-[60vw] w-[60vw] rounded-full" style={{ background: "radial-gradient(closest-side, rgba(225,18,31,0.22), transparent)" }} />
-        <p className="mb-6 font-mono text-[11px] uppercase tracking-[0.35em] text-blood">( Store ) — Demo</p>
-        <h1 className="font-display text-[clamp(88px,15vw,280px)] font-black uppercase leading-[0.78] tracking-tight">
+        <p className="relative mb-6 font-mono text-[11px] uppercase tracking-[0.35em] text-blood">( Store ) — Demo</p>
+        <h1 className="relative font-display text-[clamp(88px,15vw,280px)] font-black uppercase leading-[0.78] tracking-tight">
           The <span className="text-outline">Store</span>
         </h1>
-        <p className="mt-8 max-w-lg text-[15px] leading-relaxed text-bone/70">
+        <p className="relative mt-8 max-w-lg text-[15px] leading-relaxed text-bone/70">
           Catálogo completo de la colección. Precios demostrativos: puedes añadir al carrito y registrar pedidos, pero aún no se realizan cobros.
         </p>
       </header>
