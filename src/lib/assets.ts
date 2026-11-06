@@ -23,7 +23,7 @@ export function firstAvailable(...candidates: (string | null | undefined)[]) {
 }
 
 export function renderPath(key: MaskKey) {
-  return `/images/renders/${key}-original.webp`;
+  return `/images/renders/${key}-v3.webp`;
 }
 
 /** Imagen principal del producto: foto subida/generada → render del modelo 3D → null (ilustración SVG). */

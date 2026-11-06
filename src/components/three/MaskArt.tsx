@@ -16,11 +16,20 @@ function silhouette() {
     const a = (i / 96) * Math.PI * 2;
     const x = Math.sin(a);
     const y = Math.cos(a);
-    const t = Math.min(1, Math.max(0, (0.05 - y) / 1));
-    const jaw = t * t * (3 - 2 * t);
-    const k = 1 - 0.24 * jaw * jaw;
-    const ky = y < -0.55 ? 1 - 0.1 * Math.min(1, (-0.55 - y) / 0.45) : 1;
-    const [sx, sy] = toSvg(x * k * (y > 0 ? 1 + 0.05 * y : 1), y * ky);
+    const sm = (e0: number, e1: number, v: number) => {
+      const t = Math.min(1, Math.max(0, (v - e0) / (e1 - e0)));
+      return t * t * (3 - 2 * t);
+    };
+    const g = (d: number, s: number) => Math.exp(-(d * d) / (2 * s * s));
+    // Misma forma que la cabeza 3D: coronilla plana, pómulos, mandíbula angulosa, barbilla cuadrada.
+    const sq = Math.abs(x) ** 0.8 * Math.sign(x);
+    const bx = x + 0.22 * (sq - x);
+    const jaw = sm(-0.12, -0.8, y);
+    const chin = sm(-0.62, -0.98, y);
+    const k = (1 + 0.04 * g(y + 0.02, 0.25) - 0.03 * g(y - 0.32, 0.12)) * (1 - 0.3 * jaw) * (1 + 0.08 * chin * (1 - chin));
+    let yy = y > 0.55 ? y - 0.1 * sm(0.55, 1, y) ** 2 : y;
+    if (y < -0.6) yy = yy * (1 - 0.14 * sm(-0.6, -1, y)) - 0.02 * chin;
+    const [sx, sy] = toSvg(bx * k, yy);
     pts.push(`${i ? "L" : "M"}${sx.toFixed(2)} ${sy.toFixed(2)}`);
   }
   return pts.join(" ") + "Z";

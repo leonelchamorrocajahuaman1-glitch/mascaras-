@@ -14,19 +14,37 @@ const g2 = (dx: number, dy: number, sx: number, sy: number) => Math.exp(-((dx * 
  * Es un modelo 3D real (malla con normales), no una imagen.
  */
 function sculpt(x: number, y: number, z: number, lensScale: number): [number, number, number] {
-  // Proporciones base: más alta que ancha, más profunda que ancha.
-  let px = x * 0.75;
-  let py = y * 1.02;
-  let pz = z * 1.0;
+  // Sección horizontal "cuadrada redondeada" (superelipse) en lugar de circular:
+  // laterales y frente más planos, para que no parezca un huevo.
+  const hr = Math.hypot(x, z);
+  let sx = x, sz = z;
+  if (hr > 1e-6) {
+    const n = 3.2;
+    const k = hr / Math.pow(Math.pow(Math.abs(x / hr), n) + Math.pow(Math.abs(z / hr), n), 1 / n);
+    const b = 0.35; // mezcla círculo→superelipse
+    sx = x * (1 + b * (k / hr - 1));
+    sz = z * (1 + b * (k / hr - 1));
+  }
+  let px = sx * 0.66;
+  let py = y * 1.14;
+  let pz = sz * 0.8;
 
-  if (y > 0) px *= 1 + 0.05 * y;
-  const jaw = smooth(0.05, -0.95, y);
-  px *= 1 - 0.24 * jaw * jaw;
-  if (y < -0.55) py *= 1 - 0.1 * smooth(-0.55, -1, y);
-  if (z > 0) pz *= 1 - 0.1 * jaw;
-  else pz *= 1 - 0.38 * jaw * jaw;
-  if (z < 0) pz *= 1 + 0.07 * g2(0, y - 0.25, 1, 0.35);
-  if (z > 0) pz -= 0.07 * smooth(0.35, 1, z) * (1 - jaw * 0.4);
+  // Coronilla más plana y frente alta.
+  if (y > 0.55) py -= 0.1 * smooth(0.55, 1, y) * smooth(0.55, 1, y);
+  // Pómulos anchos y sienes ligeramente hundidas.
+  px *= 1 + 0.04 * g2(0, y + 0.02, 1, 0.25) - 0.03 * g2(0, y - 0.32, 1, 0.12);
+  // Mandíbula angulosa: estrechamiento rápido bajo los pómulos y barbilla cuadrada.
+  const jaw = smooth(-0.12, -0.8, y);
+  px *= 1 - 0.3 * jaw;
+  const chin = smooth(-0.62, -0.98, y);
+  px *= 1 + 0.08 * chin * (1 - chin);
+  if (y < -0.6) py = py * (1 - 0.14 * smooth(-0.6, -1, y)) - 0.02 * chin;
+  // Nuca llena y cuello recogido; cara con plano frontal.
+  if (z < 0) pz *= (1 + 0.1 * g2(0, y - 0.25, 1, 0.3)) * (1 - 0.55 * jaw);
+  else {
+    pz *= 1 - 0.08 * jaw;
+    pz -= 0.05 * smooth(0.5, 1, z) * (1 - jaw * 0.5);
+  }
 
   // Rasgos faciales (solo en la mitad frontal).
   let o = 0;
