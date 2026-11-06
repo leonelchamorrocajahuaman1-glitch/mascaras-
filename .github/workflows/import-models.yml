@@ -38,6 +38,19 @@ jobs:
           mkdir -p incoming
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "*.glb" --pattern "*.GLB" --pattern "*.gltf" --dir incoming || true
           ls -la incoming
+      - name: Comprimir modelos pesados (Draco + texturas WebP, máx. 2048 px)
+        run: |
+          shopt -s nullglob nocaseglob
+          for f in incoming/*.glb; do
+            before=$(stat -c %s "$f")
+            if npx -y @gltf-transform/cli@4 optimize "$f" "$f.opt.glb" --compress draco --texture-compress webp --texture-size 2048; then
+              after=$(stat -c %s "$f.opt.glb")
+              if [ "$after" -lt "$before" ]; then mv "$f.opt.glb" "$f"; else rm -f "$f.opt.glb"; fi
+              echo "$(basename "$f"): $((before/1048576)) MB -> $(( $(stat -c %s "$f")/1048576 )) MB"
+            else
+              echo "No se pudo comprimir $(basename "$f"); se usa el original."; rm -f "$f.opt.glb"
+            fi
+          done
       - name: Validar y copiar a public/models
         run: node scripts/import-models.mjs incoming
       - name: Comprobar todos los modelos
