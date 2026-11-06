@@ -142,13 +142,20 @@ const PATTERN = /* glsl */ `
   float smLensShade = 0.72 + 0.28 * smoothstep(0.0, -0.07, smLensD);
   float smRim = smoothstep(-0.035, 0.0, smLensD);
 
-  vec3 smCol = uBase * (0.9 + 0.1 * smGrain) * (0.94 + 0.06 * smGrain2);
+  // Tejido técnico: trama de tela en relieve (coordenadas esféricas).
+  vec2 smUV = vec2(atan(vDir.x, vDir.z) * 0.64, vDir.y) * 120.0;
+  vec2 smCellT = fract(smUV) - 0.5;
+  float smRow = mod(floor(smUV.y), 2.0);
+  float smWeave = smoothstep(0.5, 0.15, length(vec2(smCellT.x + smRow * 0.25, smCellT.y * 1.4)));
+  smWeave = mix(0.5, smWeave, 1.0 - smoothstep(0.25, 0.6, max(fwidth(smUV.x), fwidth(smUV.y))));
+  smWeave *= 1.0 * (1.0 - smLens) * (1.0 - smFrame);
+  vec3 smCol = uBase * (0.9 + 0.1 * smGrain) * (0.94 + 0.06 * smGrain2) * (0.82 + 0.18 * smWeave);
   smCol = mix(smCol, uWeb, smLine);
   smCol = mix(smCol, uFrame, smFrame);
   vec3 smLensCol = uLens * smLensShade * (1.0 - 0.08 * smDot) * mix(0.08, 1.0, uLensPower);
   smCol = mix(smCol, smLensCol, smLens);
 
-  float smRough = uBaseRough + (smGrain - 0.5) * 0.12;
+  float smRough = uBaseRough + (smGrain - 0.5) * 0.12 + (0.5 - smWeave) * 0.18;
   smRough = mix(smRough, uBaseRough * 0.75, smLine);
   smRough = mix(smRough, 0.32, smFrame);
   smRough = mix(smRough, 0.07, smLens);
@@ -162,7 +169,7 @@ const PATTERN = /* glsl */ `
   smEm += uLensGlow * uLensGlowIntensity * smLens * uLensPower * mix(1.0, smRim, uLensRim);
   smEm += vec3(1.0, 0.06, 0.1) * smEdge * (0.15 + 2.2 * smLine) * smoothstep(0.0, 0.05, uReveal);
 
-  float smH = smLine * 0.9 + smFrame * 1.1 + smLens * 0.4 + smGrain * 0.12;
+  float smH = smLine * 0.9 + smFrame * 1.1 + smLens * 0.4 + smGrain * 0.12 + smWeave * 0.22;
 `;
 
 export type MaskUniforms = Record<string, IUniform>;
@@ -228,7 +235,7 @@ export function createMaskMaterial() {
       )
       .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\n  totalEmissiveRadiance += smEm;");
   };
-  material.customProgramCacheKey = () => "spider-mask-v2-original";
+  material.customProgramCacheKey = () => "spider-mask-v3-fabric";
 
   return { material, uniforms };
 }
